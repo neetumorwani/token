@@ -1,0 +1,4588 @@
+diff --git a/jquery.treeTable.css b/css/jquery.treeTable.css
+similarity index 93%
+rename from jquery.treeTable.css
+rename to css/jquery.treeTable.css
+index bec225a..db2149b 100644
+--- a/jquery.treeTable.css
++++ b/css/jquery.treeTable.css
+@@ -16,11 +16,11 @@
+ }
+ 
+ .treeTable tr.collapsed td .expander {
+-  background-image: url(arrow-right.png);
++  background-image: url(../arrow-right.png);
+ }
+ 
+ .treeTable tr.expanded td .expander {
+-  background-image: url(arrow-down.png);
++  background-image: url(../arrow-down.png);
+ }
+ 
+ /* jquery.treeTable.sortable
+diff --git a/token.css b/css/token.css
+similarity index 85%
+rename from token.css
+rename to css/token.css
+index 5432f0f..5c3b3ba 100644
+--- a/token.css
++++ b/css/token.css
+@@ -4,10 +4,6 @@
+   margin-left: 19px;
+ }
+ 
+-.ui-dialog-content .token-tree {
+-  margin-left: 0;
+-}
+-
+ .token-tree td, .token-tree th {
+   padding-top: 0;
+   padding-bottom: 0;
+diff --git a/jquery.treeTable.js b/js/jquery.treeTable.js
+similarity index 100%
+rename from jquery.treeTable.js
+rename to js/jquery.treeTable.js
+diff --git a/token.js b/js/token.js
+similarity index 62%
+rename from token.js
+rename to js/token.js
+index 98d1ac3..59715f4 100644
+--- a/token.js
++++ b/js/token.js
+@@ -9,38 +9,6 @@ Drupal.behaviors.tokenTree = {
+   }
+ };
+ 
+-Drupal.behaviors.tokenDialog = {
+-  attach: function (context, settings) {
+-    $('a.token-dialog', context).once('token-dialog').click(function() {
+-      var url = $(this).attr('href');
+-      var dialog = $('<div style="display: none" class="loading">' + Drupal.t('Loading token browser...') + '</div>').appendTo('body');
+-
+-      // Emulate the AJAX data sent normally so that we get the same theme.
+-      var data = {};
+-      data['ajax_page_state[theme]'] = Drupal.settings.ajaxPageState.theme;
+-      data['ajax_page_state[theme_token]'] = Drupal.settings.ajaxPageState.theme_token;
+-
+-      dialog.dialog({
+-        title: $(this).attr('title') || Drupal.t('Available tokens'),
+-        width: 700,
+-        close: function(event, ui) {
+-          dialog.remove();
+-        }
+-      });
+-      // Load the token tree using AJAX.
+-      dialog.load(
+-        url,
+-        data,
+-        function (responseText, textStatus, XMLHttpRequest) {
+-          dialog.removeClass('loading');
+-        }
+-      );
+-      // Prevent browser from following the link.
+-      return false;
+-    });
+-  }
+-}
+-
+ Drupal.behaviors.tokenInsert = {
+   attach: function (context, settings) {
+     // Keep track of which textfield was last selected/focused.
+diff --git a/lib/Drupal/token/Tests/TokenArrayTestCase.php b/lib/Drupal/token/Tests/TokenArrayTestCase.php
+new file mode 100644
+index 0000000..ebc627f
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenArrayTestCase.php
+@@ -0,0 +1,69 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenArrayTestCase
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Tests array tokens.
++ */
++class TokenArrayTestCase extends TokenTestBase {
++  public static function getInfo() {
++    return array(
++      'name' => 'Array token tests',
++      'description' => 'Test the array tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  function testArrayTokens() {
++    // Test a simple array.
++    $array = array(0 => 'a', 1 => 'b', 2 => 'c', 4 => 'd');
++    $tokens = array(
++      'first' => 'a',
++      'last' => 'd',
++      'value:0' => 'a',
++      'value:2' => 'c',
++      'count' => 4,
++      'keys' => '0, 1, 2, 4',
++      'keys:value:3' => '4',
++      'keys:join' => '0124',
++      'reversed' => 'd, c, b, a',
++      'reversed:keys' => '4, 2, 1, 0',
++      'join:/' => 'a/b/c/d',
++      'join' => 'abcd',
++      'join:, ' => 'a, b, c, d',
++      'join: ' => 'a b c d',
++    );
++    $this->assertTokens('array', array('array' => $array), $tokens);
++
++    // Test a mixed simple and render array.
++    // 2 => c, 0 => a, 4 => d, 1 => b
++    $array = array(
++      '#property' => 'value',
++      0 => 'a',
++      1 => array('#markup' => 'b', '#weight' => 0.01),
++      2 => array('#markup' => 'c', '#weight' => -10),
++      4 => array('#markup' => 'd', '#weight' => 0),
++    );
++    $tokens = array(
++      'first' => 'c',
++      'last' => 'b',
++      'value:0' => 'a',
++      'value:2' => 'c',
++      'count' => 4,
++      'keys' => '2, 0, 4, 1',
++      'keys:value:3' => '1',
++      'keys:join' => '2041',
++      'reversed' => 'b, d, a, c',
++      'reversed:keys' => '1, 4, 0, 2',
++      'join:/' => 'c/a/d/b',
++      'join' => 'cadb',
++      'join:, ' => 'c, a, d, b',
++      'join: ' => 'c a d b',
++    );
++    $this->assertTokens('array', array('array' => $array), $tokens);
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenBlockTestCase.php b/lib/Drupal/token/Tests/TokenBlockTestCase.php
+new file mode 100644
+index 0000000..7245d7f
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenBlockTestCase.php
+@@ -0,0 +1,56 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenBlockTestCase.
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Tests block tokens.
++ */
++class TokenBlockTestCase extends TokenTestBase {
++  protected static $modules = array('path', 'token', 'token_test', 'block', 'node', 'views', 'custom_block');
++
++  public static function getInfo() {
++    return array(
++      'name' => 'Block token tests',
++      'description' => 'Test the block title token replacement.',
++      'group' => 'Token',
++    );
++  }
++
++  public function setUp($modules = array()) {
++    parent::setUp();
++    $this->admin_user = $this->drupalCreateUser(array('access content', 'administer blocks'));
++    $this->drupalLogin($this->admin_user);
++  }
++
++  public function testBlockTitleTokens() {
++    $label = 'tokenblock';
++    $bundle = entity_create('custom_block_type', array(
++      'id' => $label,
++      'label' => $label,
++      'revision' => FALSE
++    ));
++    $bundle->save();
++
++    /* @var \Drupal\custom_block\CustomBlockInterface $block */
++    $block = entity_create('custom_block', array(
++      'type' => $label,
++      'label' => '[current-page:title] block title',
++      'info' => 'Test token title block',
++      'body[value]' => 'This is the test token title block.',
++    ));
++    $block->save();
++    $this->drupalPlaceBlock('custom_block:' . $block->uuid(), array(
++      'label' => '[current-page:title] block title',
++    ));
++
++    // Ensure that tokens are not double-escaped when output as a block title.
++    $node = $this->drupalCreateNode(array('title' => "Site's first node"));
++    $this->drupalGet('node/' . $node->id());
++    // The apostraphe should only be escaped once via check_plain().
++    $this->assertRaw("Site&#039;s first node block title");
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenCommentTestCase.php b/lib/Drupal/token/Tests/TokenCommentTestCase.php
+new file mode 100644
+index 0000000..8ee1e07
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenCommentTestCase.php
+@@ -0,0 +1,69 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenCommentTestCase.
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Tests comment tokens.
++ */
++class TokenCommentTestCase extends TokenTestBase {
++  protected static $modules = array('path', 'token', 'token_test', 'node', 'comment');
++
++  public static function getInfo() {
++    return array(
++      'name' => 'Comment token tests',
++      'description' => 'Test the comment tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  function testCommentTokens() {
++    \Drupal::service('comment.manager')->addDefaultField('node', 'page');
++    $node = $this->drupalCreateNode();
++
++    $parent_comment = entity_create('comment', array(
++      'entity_id' => $node->id(),
++      'entity_type' => 'node',
++      'field_name' => 'comment',
++      'name' => 'anonymous user',
++      'mail' => 'anonymous@example.com',
++      'subject' => $this->randomName(),
++      'body' => $this->randomName(),
++    ));
++    $parent_comment->save();
++
++    $tokens = array(
++      'url' => url('comment/' . $parent_comment->id(), array('fragment' => 'comment-' . $parent_comment->id(), 'absolute' => TRUE)),
++      'url:absolute' => url('comment/' . $parent_comment->id(), array('fragment' => 'comment-' . $parent_comment->id(), 'absolute' => TRUE)),
++      'url:relative' => url('comment/' . $parent_comment->id(), array('fragment' => 'comment-' . $parent_comment->id(), 'absolute' => FALSE)),
++      'url:path' => 'comment/' . $parent_comment->id(),
++      'parent:url:absolute' => NULL,
++    );
++    $this->assertTokens('comment', array('comment' => $parent_comment), $tokens);
++
++    $comment = entity_create('comment', array(
++      'entity_id' => $node->id(),
++      'pid' => $parent_comment->id(),
++      'entity_type' => 'node',
++      'field_name' => 'comment',
++      'uid' => 1,
++      'name' => 'anonymous user',
++      'mail' => 'anonymous@example.com',
++      'subject' => $this->randomName(),
++      'body' => $this->randomName(),
++    ));
++    $comment->save();
++
++    $tokens = array(
++      'url' => url('comment/' . $comment->id(), array('fragment' => 'comment-' . $comment->id(), 'absolute' => TRUE)),
++      'url:absolute' => url('comment/' . $comment->id(), array('fragment' => 'comment-' . $comment->id(), 'absolute' => TRUE)),
++      'url:relative' => url('comment/' . $comment->id(), array('fragment' => 'comment-' . $comment->id(), 'absolute' => FALSE)),
++      'url:path' => 'comment/' . $comment->id(),
++      'parent:url:absolute' => url('comment/' . $parent_comment->id(), array('fragment' => 'comment-' . $parent_comment->id(), 'absolute' => TRUE)),
++    );
++    $this->assertTokens('comment', array('comment' => $comment), $tokens);
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenCurrentPageTestCase.php b/lib/Drupal/token/Tests/TokenCurrentPageTestCase.php
+new file mode 100644
+index 0000000..d67478c
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenCurrentPageTestCase.php
+@@ -0,0 +1,69 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenCurrentPageTestCase.
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Tests current page tokens.
++ */
++class TokenCurrentPageTestCase extends TokenTestBase {
++
++  protected static $modules = array('path', 'token', 'token_test', 'node');
++
++  public static function getInfo() {
++    return array(
++      'name' => 'Current page token tests',
++      'description' => 'Test the [current-page:*] tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  function testCurrentPageTokens() {
++    $this->drupalGet('user');
++    $tokens = array(
++      '[current-page:title]' => t('Log in'),
++      '[current-page:url]' => url('user', array('absolute' => TRUE)),
++      '[current-page:url:absolute]' => url('user', array('absolute' => TRUE)),
++      '[current-page:url:relative]' => url('user', array('absolute' => FALSE)),
++      '[current-page:url:path]' => 'user',
++      '[current-page:url:args:value:0]' => 'user',
++      '[current-page:url:args:value:1]' => NULL,
++      '[current-page:url:unaliased]' => url('user', array('absolute' => TRUE, 'alias' => TRUE)),
++      '[current-page:page-number]' => 1,
++      '[current-page:query:foo]' => NULL,
++      '[current-page:query:bar]' => NULL,
++      '[current-page:query:q]' => 'user',
++      // Deprecated tokens
++      '[current-page:arg:0]' => 'user',
++      '[current-page:arg:1]' => NULL,
++    );
++    $this->assertPageTokens('', $tokens);
++
++    $node = $this->drupalCreateNode(array('title' => 'Node title', 'path' => array('alias' => 'node-alias')));
++    $tokens = array(
++      '[current-page:title]' => 'Node title',
++      '[current-page:url]' => url("node/{$node->id()}", array('absolute' => TRUE)),
++      '[current-page:url:absolute]' => url("node/{$node->id()}", array('absolute' => TRUE)),
++      '[current-page:url:relative]' => url("node/{$node->id()}", array('absolute' => FALSE)),
++      '[current-page:url:alias]' => 'node-alias',
++      '[current-page:url:args:value:0]' => 'node-alias',
++      '[current-page:url:args:value:1]' => NULL,
++      '[current-page:url:unaliased]' => url("node/{$node->id()}", array('absolute' => TRUE, 'alias' => TRUE)),
++      '[current-page:url:unaliased:args:value:0]' => 'node',
++      '[current-page:url:unaliased:args:value:1]' => $node->id(),
++      '[current-page:url:unaliased:args:value:2]' => NULL,
++      '[current-page:page-number]' => 1,
++      '[current-page:query:foo]' => 'bar',
++      '[current-page:query:bar]' => NULL,
++      '[current-page:query:q]' => 'node/1',
++      // Deprecated tokens
++      '[current-page:arg:0]' => 'node',
++      '[current-page:arg:1]' => 1,
++      '[current-page:arg:2]' => NULL,
++    );
++    $this->assertPageTokens("node/{$node->id()}", $tokens, array(), array('url_options' => array('query' => array('foo' => 'bar'))));
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenDateTestCase.php b/lib/Drupal/token/Tests/TokenDateTestCase.php
+new file mode 100644
+index 0000000..675c0df
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenDateTestCase.php
+@@ -0,0 +1,29 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenDateTestCase.
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Tests date tokens.
++ */
++class TokenDateTestCase extends TokenTestBase {
++  public static function getInfo() {
++    return array(
++      'name' => 'Date token tests',
++      'description' => 'Test the date tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  function testDateTokens() {
++    $tokens = array(
++      'token_test' => '1984',
++      'invalid_format' => NULL,
++    );
++
++    $this->assertTokens('date', array('date' => 453859200), $tokens);
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenEntityTestCase.php b/lib/Drupal/token/Tests/TokenEntityTestCase.php
+new file mode 100644
+index 0000000..8d67c22
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenEntityTestCase.php
+@@ -0,0 +1,91 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenEntityTestCase.
++ */
++namespace Drupal\token\Tests;
++use Drupal\taxonomy\VocabularyInterface;
++
++/**
++ * Tests entity tokens.
++ */
++class TokenEntityTestCase extends TokenTestBase {
++  protected static $modules = array('path', 'token', 'token_test', 'node', 'taxonomy');
++
++  public static function getInfo() {
++    return array(
++      'name' => 'Entity token tests',
++      'description' => 'Test the entity tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  public function setUp($modules = array()) {
++    parent::setUp();
++
++    // Create the default tags vocabulary.
++    $vocabulary = entity_create('taxonomy_vocabulary', array(
++      'name' => 'Tags',
++      'vid' => 'tags',
++    ));
++    $vocabulary->save();
++    $this->vocab = $vocabulary;
++  }
++
++  function testEntityMapping() {
++    $this->assertIdentical(token_get_entity_mapping('token', 'node'), 'node');
++    $this->assertIdentical(token_get_entity_mapping('token', 'term'), 'taxonomy_term');
++    $this->assertIdentical(token_get_entity_mapping('token', 'vocabulary'), 'taxonomy_vocabulary');
++    $this->assertIdentical(token_get_entity_mapping('token', 'invalid'), FALSE);
++    $this->assertIdentical(token_get_entity_mapping('entity', 'node'), 'node');
++    $this->assertIdentical(token_get_entity_mapping('entity', 'taxonomy_term'), 'term');
++    $this->assertIdentical(token_get_entity_mapping('entity', 'taxonomy_vocabulary'), 'vocabulary');
++    $this->assertIdentical(token_get_entity_mapping('entity', 'invalid'), FALSE);
++
++    // Test that when we send the mis-matched entity type into token_replace()
++    // that we still get the tokens replaced.
++    $vocabulary = entity_load('taxonomy_vocabulary', 'tags');
++    $term = $this->addTerm($vocabulary);
++    $this->assertIdentical(\Drupal::token()->replace('[vocabulary:name]', array('taxonomy_vocabulary' => $vocabulary)), $vocabulary->label());
++    $this->assertIdentical(\Drupal::token()->replace('[term:name][term:vocabulary:name]', array('taxonomy_term' => $term)), $term->label() . $vocabulary->label());
++  }
++
++  function addTerm(VocabularyInterface $vocabulary, array $term = array()) {
++    $term += array(
++      'name' => drupal_strtolower($this->randomName(5)),
++      'vid' => $vocabulary->id(),
++    );
++    $term = entity_create('taxonomy_term', $term);
++    $term->save();
++    return $term;
++  }
++
++  /**
++   * Test the [entity:original:*] tokens.
++   */
++  function testEntityOriginal() {
++    $node = $this->drupalCreateNode(array('title' => 'Original title'));
++
++    $tokens = array(
++      'nid' => $node->id(),
++      'title' => 'Original title',
++      'original' => NULL,
++      'original:nid' => NULL,
++    );
++    $this->assertTokens('node', array('node' => $node), $tokens);
++
++    // Emulate the original entity property that would be available from
++    // node_save() and change the title for the node.
++    $node->original = entity_load_unchanged('node', $node->id());
++    $node->title = 'New title';
++
++    $tokens = array(
++      'nid' => $node->id(),
++      'title' => 'New title',
++      'original' => 'Original title',
++      'original:nid' => $node->id(),
++    );
++    $this->assertTokens('node', array('node' => $node), $tokens);
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenFileTestCase.php b/lib/Drupal/token/Tests/TokenFileTestCase.php
+new file mode 100644
+index 0000000..84b47ef
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenFileTestCase.php
+@@ -0,0 +1,51 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenFileTestCase.
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Tests file tokens.
++ */
++class TokenFileTestCase extends TokenTestBase {
++  protected static $modules = array('path', 'token', 'token_test', 'file');
++
++  public static function getInfo() {
++    return array(
++      'name' => 'File token tests',
++      'description' => 'Test the file tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  function testFileTokens() {
++    // Create a test file object.
++    $file = entity_create('file', array(
++      'fid' => 1,
++      'filename' => 'test.png',
++      'filesize' => 100,
++      'uri' => 'public://images/test.png',
++      'filemime' => 'image/png',
++    ));
++
++    $tokens = array(
++      'basename' => 'test.png',
++      'extension' => 'png',
++      'size-raw' => 100,
++    );
++    $this->assertTokens('file', array('file' => $file), $tokens);
++
++    // Test a file with no extension and a fake name.
++    $file->filename = 'Test PNG image';
++    $file->uri = 'public://images/test';
++
++    $tokens = array(
++      'basename' => 'test',
++      'extension' => '',
++      'size-raw' => 100,
++    );
++    $this->assertTokens('file', array('file' => $file), $tokens);
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenMenuTestCase.php b/lib/Drupal/token/Tests/TokenMenuTestCase.php
+new file mode 100644
+index 0000000..13882f5
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenMenuTestCase.php
+@@ -0,0 +1,125 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenMenuTestCase.
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Tests menu tokens.
++ */
++class TokenMenuTestCase extends TokenTestBase {
++  protected static $modules = array('path', 'token', 'token_test', 'menu', 'node');
++
++  public static function getInfo() {
++    return array(
++      'name' => 'Menu link and menu token tests',
++      'description' => 'Test the menu tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  function testMenuTokens() {
++    // Add a menu.
++    $menu = entity_create('menu', array(
++      'id' => 'main-menu',
++      'label' => 'Main menu',
++      'description' => 'The <em>Main</em> menu is used on many sites to show the major sections of the site, often in a top navigation bar.',
++    ));
++    $menu->save();
++    // Add a root link.
++    $root_link = entity_create('menu_link', array(
++      'link_path' => 'admin',
++      'link_title' => 'Administration',
++      'menu_name' => 'main-menu',
++    ));
++    $root_link->save();
++
++    // Add another link with the root link as the parent
++    $parent_link = entity_create('menu_link', array(
++      'link_path' => 'admin/config',
++      'link_title' => 'Configuration',
++      'menu_name' => 'main-menu',
++      'plid' => $root_link['mlid'],
++    ));
++    $parent_link->save();
++
++    // Test menu link tokens.
++    $tokens = array(
++      'mlid' => $parent_link['mlid'],
++      'title' => 'Configuration',
++      'menu' => 'Main menu',
++      'menu:name' => 'Main menu',
++      'menu:machine-name' => 'main-menu',
++      'menu:description' => 'The <em>Main</em> menu is used on many sites to show the major sections of the site, often in a top navigation bar.',
++      'menu:menu-link-count' => 2,
++      'menu:edit-url' => url("admin/structure/menu/manage/main-menu", array('absolute' => TRUE)),
++      'url' => url('admin/config', array('absolute' => TRUE)),
++      'url:absolute' => url('admin/config', array('absolute' => TRUE)),
++      'url:relative' => url('admin/config', array('absolute' => FALSE)),
++      'url:path' => 'admin/config',
++      'url:alias' => 'admin/config',
++      'edit-url' => url("admin/structure/menu/item/{$parent_link['mlid']}/edit", array('absolute' => TRUE)),
++      'parent' => 'Administration',
++      'parent:mlid' => $root_link['mlid'],
++      'parent:title' => 'Administration',
++      'parent:menu' => 'Main menu',
++      'parent:parent' => NULL,
++      'parents' => 'Administration',
++      'parents:count' => 1,
++      'parents:keys' => $root_link['mlid'],
++      'root' => 'Administration',
++      'root:mlid' => $root_link['mlid'],
++      'root:parent' => NULL,
++      'root:root' => NULL,
++    );
++    $this->assertTokens('menu-link', array('menu-link' => $parent_link), $tokens);
++
++    // Add a node.
++    $node = $this->drupalCreateNode();
++
++    // Allow main menu for this node type.
++    \Drupal::config('menu.entity.node.' . $node->getType())->set('available_menus', array('main-menu'))->save();
++
++    // Add a node menu link
++    $node_link = entity_create('menu_link', array(
++      'enabled' => TRUE,
++      'link_path' => 'node/' . $node->id(),
++      'link_title' => 'Node link',
++      'plid' => $parent_link['mlid'],
++      'customized' => 0,
++      'menu_name' => 'main-menu',
++      'description' => '',
++    ));
++    $node_link->save();
++
++    // Test [node:menu] tokens.
++    $tokens = array(
++      'menu-link' => 'Node link',
++      'menu-link:mlid' => $node->menu['mlid'],
++      'menu-link:title' => 'Node link',
++      'menu-link:menu' => 'Main menu',
++      'menu-link:url' => url('node/' . $node->id(), array('absolute' => TRUE)),
++      'menu-link:url:path' => 'node/' . $node->id(),
++      'menu-link:edit-url' => url("admin/structure/menu/item/{$node_link->id()}/edit", array('absolute' => TRUE)),
++      'menu-link:parent' => 'Configuration',
++      'menu-link:parent:mlid' => $node->menu['plid'],
++      'menu-link:parent:mlid' => $parent_link['mlid'],
++      'menu-link:parents' => 'Administration, Configuration',
++      'menu-link:parents:count' => 2,
++      'menu-link:parents:keys' => $root_link['mlid'] . ', ' . $parent_link['mlid'],
++      'menu-link:root' => 'Administration',
++      'menu-link:root:mlid' => $root_link['mlid'],
++    );
++    $this->assertTokens('node', array('node' => $node), $tokens);
++
++    // Reload the node which will not have $node->menu defined and re-test.
++    $loaded_node = node_load($node->id());
++    $this->assertTokens('node', array('node' => $loaded_node), $tokens);
++
++    // Regression test for http://drupal.org/node/1317926 to ensure the
++    // original node object is not changed when calling menu_node_prepare().
++    $this->assertTrue(!isset($loaded_node->menu), t('The $node->menu property was not modified during token replacement.'), 'Regression');
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenNodeTestCase.php b/lib/Drupal/token/Tests/TokenNodeTestCase.php
+new file mode 100644
+index 0000000..1b14173
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenNodeTestCase.php
+@@ -0,0 +1,68 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenNodeTestCase.
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Tests node tokens.
++ */
++class TokenNodeTestCase extends TokenTestBase {
++  protected $profile = 'standard';
++
++  public static function getInfo() {
++    return array(
++      'name' => 'Node and content type token tests',
++      'description' => 'Test the node and content type tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  function testNodeTokens() {
++    $source_node = $this->drupalCreateNode(array('log' => $this->randomName(), 'path' => array('alias' => 'content/source-node')));
++    $tokens = array(
++      'source' => NULL,
++      'source:nid' => NULL,
++      'log' => $source_node->log->value,
++      'url:path' => 'content/source-node',
++      'url:absolute' => url("node/{$source_node->id()}", array('absolute' => TRUE)),
++      'url:relative' => url("node/{$source_node->id()}", array('absolute' => FALSE)),
++      'url:unaliased:path' => "node/{$source_node->id()}",
++      'content-type' => 'Basic page',
++      'content-type:name' => 'Basic page',
++      'content-type:machine-name' => 'page',
++      'content-type:description' => "Use <em>basic pages</em> for your static content, such as an 'About us' page.",
++      'content-type:node-count' => 1,
++      'content-type:edit-url' => url('admin/structure/types/manage/page', array('absolute' => TRUE)),
++      // Deprecated tokens.
++      'type' => 'page',
++      'type-name' => 'Basic page',
++      'url:alias' => 'content/source-node',
++    );
++    $this->assertTokens('node', array('node' => $source_node), $tokens);
++
++    $translated_node = $this->drupalCreateNode(array('tnid' => $source_node->id(), 'type' => 'article'));
++    $tokens = array(
++      'source' => $source_node->label(),
++      'source:nid' => $source_node->id(),
++      'log' => '',
++      'url:path' => "node/{$translated_node->id()}",
++      'url:absolute' => url("node/{$translated_node->id()}", array('absolute' => TRUE)),
++      'url:relative' => url("node/{$translated_node->id()}", array('absolute' => FALSE)),
++      'url:unaliased:path' => "node/{$translated_node->id()}",
++      'content-type' => 'Article',
++      'content-type:name' => 'Article',
++      'content-type:machine-name' => 'article',
++      'content-type:description' => "Use <em>articles</em> for time-sensitive content like news, press releases or blog posts.",
++      'content-type:node-count' => 1,
++      'content-type:edit-url' => url('admin/structure/types/manage/article', array('absolute' => TRUE)),
++      // Deprecated tokens.
++      'type' => 'article',
++      'type-name' => 'Article',
++      'url:alias' => "node/{$translated_node->id()}",
++    );
++    $this->assertTokens('node', array('node' => $translated_node), $tokens);
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenRandomTestCase.php b/lib/Drupal/token/Tests/TokenRandomTestCase.php
+new file mode 100644
+index 0000000..e214a13
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenRandomTestCase.php
+@@ -0,0 +1,36 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenRandomTestCase.
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Tests random tokens.
++ */
++class TokenRandomTestCase extends TokenTestBase {
++  public static function getInfo() {
++    return array(
++      'name' => 'Random token tests',
++      'description' => 'Test the random tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  function testRandomTokens() {
++    $tokens = array(
++      'number' => '[0-9]{1,}',
++      'hash:md5' => '[0-9a-f]{32}',
++      'hash:sha1' => '[0-9a-f]{40}',
++      'hash:sha256' => '[0-9a-f]{64}',
++      'hash:invalid-algo' => NULL,
++    );
++
++    $first_set = $this->assertTokens('random', array(), $tokens, array('regex' => TRUE));
++    $second_set = $this->assertTokens('random', array(), $tokens, array('regex' => TRUE));
++    foreach ($first_set as $token => $value) {
++      $this->assertNotIdentical($first_set[$token], $second_set[$token]);
++    }
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenTaxonomyTestCase.php b/lib/Drupal/token/Tests/TokenTaxonomyTestCase.php
+new file mode 100644
+index 0000000..e597bf9
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenTaxonomyTestCase.php
+@@ -0,0 +1,116 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenTaxonomyTestCase.
++ */
++namespace Drupal\token\Tests;
++use Drupal\Component\Utility\String;
++
++/**
++ * Tests taxonomy tokens.
++ */
++class TokenTaxonomyTestCase extends TokenTestBase {
++  protected $vocab;
++
++  protected static $modules = array('path', 'token', 'token_test', 'taxonomy');
++
++  public static function getInfo() {
++    return array(
++      'name' => 'Taxonomy and vocabulary token tests',
++      'description' => 'Test the taxonomy tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  public function setUp() {
++    parent::setUp();
++
++    // Create the default tags vocabulary.
++    $vocabulary = entity_create('taxonomy_vocabulary', array(
++      'name' => 'Tags',
++      'vid' => 'tags',
++    ));
++    $vocabulary->save();
++    $this->vocab = $vocabulary;
++  }
++
++  /**
++   * Test the additional taxonomy term tokens.
++   */
++  function testTaxonomyTokens() {
++    $root_term = $this->addTerm($this->vocab, array('name' => 'Root term', 'path' => array('alias' => 'root-term')));
++    $tokens = array(
++      'url' => url("taxonomy/term/{$root_term->id()}", array('absolute' => TRUE)),
++      'url:absolute' => url("taxonomy/term/{$root_term->id()}", array('absolute' => TRUE)),
++      'url:relative' => url("taxonomy/term/{$root_term->id()}", array('absolute' => FALSE)),
++      'url:path' => 'root-term',
++      'url:unaliased:path' => "taxonomy/term/{$root_term->id()}",
++      'edit-url' => url("taxonomy/term/{$root_term->id()}/edit", array('absolute' => TRUE)),
++      'parents' => NULL,
++      'parents:count' => NULL,
++      'parents:keys' => NULL,
++      'root' => NULL,
++      // Deprecated tokens
++      'url:alias' => 'root-term',
++    );
++    $this->assertTokens('term', array('term' => $root_term), $tokens);
++
++    $parent_term = $this->addTerm($this->vocab, array('name' => 'Parent term', 'parent' => $root_term->id()));
++    $tokens = array(
++      'url' => url("taxonomy/term/{$parent_term->id()}", array('absolute' => TRUE)),
++      'url:absolute' => url("taxonomy/term/{$parent_term->id()}", array('absolute' => TRUE)),
++      'url:relative' => url("taxonomy/term/{$parent_term->id()}", array('absolute' => FALSE)),
++      'url:path' => "taxonomy/term/{$parent_term->id()}",
++      'url:unaliased:path' => "taxonomy/term/{$parent_term->id()}",
++      'edit-url' => url("taxonomy/term/{$parent_term->id()}/edit", array('absolute' => TRUE)),
++      'parents' => 'Root term',
++      'parents:count' => 1,
++      'parents:keys' => $root_term->id(),
++      'root' => String::checkPlain($root_term->label()),
++      'root:tid' => $root_term->id(),
++      // Deprecated tokens
++      'url:alias' => "taxonomy/term/{$parent_term->id()}",
++    );
++    $this->assertTokens('term', array('term' => $parent_term), $tokens);
++
++    $term = $this->addTerm($this->vocab, array('name' => 'Test term', 'parent' => $parent_term->id()));
++    $tokens = array(
++      'parents' => 'Root term, Parent term',
++      'parents:count' => 2,
++      'parents:keys' => implode(', ', array($root_term->id(), $parent_term->id())),
++    );
++    $this->assertTokens('term', array('term' => $term), $tokens);
++  }
++
++  /**
++   * Test the additional vocabulary tokens.
++   */
++  function testVocabularyTokens() {
++    $vocabulary = $this->vocab;
++    $tokens = array(
++      'machine-name' => 'tags',
++      'edit-url' => url("admin/structure/taxonomy/{$vocabulary->id()}/edit", array('absolute' => TRUE)),
++    );
++    $this->assertTokens('vocabulary', array('vocabulary' => $vocabulary), $tokens);
++  }
++
++  function addVocabulary(array $vocabulary = array()) {
++    $vocabulary += array(
++      'name' => drupal_strtolower($this->randomName(5)),
++      'nodes' => array('article' => 'article'),
++    );
++    $vocabulary = entity_create('taxonomy_vocabulary', $vocabulary)->save();
++    return $vocabulary;
++  }
++
++  function addTerm($vocabulary, array $term = array()) {
++    $term += array(
++      'name' => drupal_strtolower($this->randomName(5)),
++      'vid' => $vocabulary->id(),
++    );
++    $term = entity_create('taxonomy_term', $term);
++    $term->save();
++    return $term;
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenTestBase.php b/lib/Drupal/token/Tests/TokenTestBase.php
+new file mode 100644
+index 0000000..dbcbb92
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenTestBase.php
+@@ -0,0 +1,117 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenTestBase.
++ */
++namespace Drupal\token\Tests;
++
++use Drupal\Core\Entity\EntityInterface;
++use Drupal\simpletest\WebTestBase;
++use Drupal\Core\Language\Language;
++
++/**
++ * Helper test class with some added functions for testing.
++ */
++class TokenTestBase extends WebTestBase {
++  protected $profile = 'testing';
++
++  protected static $modules = array('path', 'token', 'token_test');
++
++  function assertToken($type, array $data, $token, $expected, array $options = array()) {
++    return $this->assertTokens($type, $data, array($token => $expected), $options);
++  }
++
++  function assertTokens($type, array $data, array $tokens, array $options = array()) {
++    $input = $this->mapTokenNames($type, array_keys($tokens));
++    $replacements = \Drupal::token()->generate($type, $input, $data, $options);
++    foreach ($tokens as $name => $expected) {
++      $token = $input[$name];
++      if (!isset($expected)) {
++        $this->assertTrue(!isset($values[$token]), t("Token value for @token was not generated.", array('@type' => $type, '@token' => $token)));
++      }
++      elseif (!isset($replacements[$token])) {
++        $this->fail(t("Token value for @token was not generated.", array('@type' => $type, '@token' => $token)));
++      }
++      elseif (!empty($options['regex'])) {
++        $this->assertTrue(preg_match('/^' . $expected . '$/', $replacements[$token]), t("Token value for @token was '@actual', matching regular expression pattern '@expected'.", array('@type' => $type, '@token' => $token, '@actual' => $replacements[$token], '@expected' => $expected)));
++      }
++      else {
++        $this->assertIdentical($replacements[$token], $expected, t("Token value for @token was '@actual', expected value '@expected'.", array('@type' => $type, '@token' => $token, '@actual' => $replacements[$token], '@expected' => $expected)));
++      }
++    }
++
++    return $replacements;
++  }
++
++  function mapTokenNames($type, array $tokens = array()) {
++    $return = array();
++    foreach ($tokens as $token) {
++      $return[$token] = "[$type:$token]";
++    }
++    return $return;
++  }
++
++  function assertNoTokens($type, array $data, array $tokens, array $options = array()) {
++    $input = $this->mapTokenNames($type, $tokens);
++    $replacements = \Drupal::token()->generate($type, $input, $data, $options);
++    foreach ($tokens as $name) {
++      $token = $input[$name];
++      $this->assertTrue(!isset($replacements[$token]), t("Token value for @token was not generated.", array('@type' => $type, '@token' => $token)));
++    }
++    return $values;
++  }
++
++  function saveAlias($source, $alias, $language = Language::LANGCODE_NOT_SPECIFIED) {
++    $alias = array(
++      'source' => $source,
++      'alias' => $alias,
++      'language' => $language,
++    );
++    \Drupal::service('path.crud')->save($alias['source'], $alias['alias']);
++    return $alias;
++  }
++
++  function saveEntityAlias($entity_type, EntityInterface $entity, $alias, $language = Language::LANGCODE_NOT_SPECIFIED) {
++    $uri = $entity->urlInfo();
++    return $this->saveAlias($uri['path'], $alias, $language);
++  }
++
++  /**
++   * Make a page request and test for token generation.
++   */
++  function assertPageTokens($url, array $tokens, array $data = array(), array $options = array()) {
++    if (empty($tokens)) {
++      return TRUE;
++    }
++
++    $token_page_tokens = array(
++      'tokens' => $tokens,
++      'data' => $data,
++      'options' => $options,
++    );
++    \Drupal::state()->set('token_page_tokens', $token_page_tokens);
++
++    $options += array('url_options' => array());
++    $this->drupalGet($url, $options['url_options']);
++    $this->refreshVariables();
++    $result = \Drupal::state()->get('token_page_tokens', array());
++
++    if (!isset($result['values']) || !is_array($result['values'])) {
++      return $this->fail('Failed to generate tokens.');
++    }
++
++    foreach ($tokens as $token => $expected) {
++      if (!isset($expected)) {
++        $this->assertTrue(!isset($result['values'][$token]) || $result['values'][$token] === $token, t("Token value for @token was not generated.", array('@token' => $token)));
++      }
++      elseif (!isset($result['values'][$token])) {
++        $this->fail(t('Failed to generate token @token.', array('@token' => $token)));
++      }
++      else {
++        $this->assertIdentical($result['values'][$token], (string) $expected, t("Token value for @token was '@actual', expected value '@expected'.", array('@token' => $token, '@actual' => $result['values'][$token], '@expected' => $expected)));
++      }
++    }
++  }
++
++}
+diff --git a/lib/Drupal/token/Tests/TokenURLTestCase.php b/lib/Drupal/token/Tests/TokenURLTestCase.php
+new file mode 100644
+index 0000000..91c5a2c
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenURLTestCase.php
+@@ -0,0 +1,50 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenURLTestCase.
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Tests url tokens.
++ */
++class TokenURLTestCase extends TokenTestBase {
++  protected static $modules = array('path', 'token', 'token_test', 'node');
++
++  public static function getInfo() {
++    return array(
++      'name' => 'URL token tests',
++      'description' => 'Test the URL tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  public function setUp() {
++    parent::setUp();
++    $this->saveAlias('node/1', 'first-node');
++  }
++
++  function testURLTokens() {
++    $host = \Drupal::request()->getHttpHost();
++    $tokens = array(
++      'absolute' => "http://{$host}/first-node",
++      'relative' => base_path() . 'first-node',
++      'path' => 'first-node',
++      'brief' => "{$host}/first-node",
++      'args:value:0' => 'first-node',
++      'args:value:1' => NULL,
++      'args:value:N' => NULL,
++      'unaliased' => "http://{$host}/node/1",
++      'unaliased:relative' => base_path() . 'node/1',
++      'unaliased:path' => 'node/1',
++      'unaliased:brief' => "{$host}/node/1",
++      'unaliased:args:value:0' => 'node',
++      'unaliased:args:value:1' => '1',
++      'unaliased:args:value:2' => NULL,
++      // Deprecated tokens.
++      'alias' => 'first-node',
++    );
++    $this->assertTokens('url', array('route_name' => 'node.view', 'route_parameters' => array('node' => 1)), $tokens);
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenUnitTestCase.php b/lib/Drupal/token/Tests/TokenUnitTestCase.php
+new file mode 100644
+index 0000000..127b1be
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenUnitTestCase.php
+@@ -0,0 +1,96 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenUnitTestCase.
++ */
++namespace Drupal\token\Tests;
++
++/**
++ * Token unit tests.
++ */
++class TokenUnitTestCase extends TokenTestBase {
++  protected static $modules = array('path', 'token', 'token_test', 'file', 'node');
++
++  public static function getInfo() {
++    return array(
++      'name' => 'Token unit tests',
++      'description' => 'Test basic, low-level token functions.',
++      'group' => 'Token',
++    );
++  }
++
++  /**
++   * Test token_get_invalid_tokens() and token_get_invalid_tokens_by_context().
++   */
++  public function testGetInvalidTokens() {
++    $tests = array();
++    $tests[] = array(
++      'valid tokens' => array(
++        '[node:title]',
++        '[node:created:short]',
++        '[node:created:custom:invalid]',
++        '[node:created:custom:mm-YYYY]',
++        '[site:name]',
++        '[site:slogan]',
++        '[current-date:short]',
++        '[current-user:uid]',
++        '[current-user:ip-address]',
++      ),
++      'invalid tokens' => array(
++        '[node:title:invalid]',
++        '[node:created:invalid]',
++        '[node:created:short:invalid]',
++        '[invalid:title]',
++        '[site:invalid]',
++        '[user:ip-address]',
++        '[user:uid]',
++        '[comment:cid]',
++        // Deprecated tokens
++        '[node:tnid]',
++        '[node:type]',
++        '[node:type-name]',
++        '[date:short]',
++      ),
++      'types' => array('node'),
++    );
++    $tests[] = array(
++      'valid tokens' => array(
++        '[node:title]',
++        '[node:created:short]',
++        '[node:created:custom:invalid]',
++        '[node:created:custom:mm-YYYY]',
++        '[site:name]',
++        '[site:slogan]',
++        '[user:uid]',
++        '[current-date:short]',
++        '[current-user:uid]',
++      ),
++      'invalid tokens' => array(
++        '[node:title:invalid]',
++        '[node:created:invalid]',
++        '[node:created:short:invalid]',
++        '[invalid:title]',
++        '[site:invalid]',
++        '[user:ip-address]',
++        '[comment:cid]',
++        // Deprecated tokens
++        '[node:tnid]',
++        '[node:type]',
++        '[node:type-name]',
++      ),
++      'types' => array('all'),
++    );
++
++    foreach ($tests as $test) {
++      $tokens = array_merge($test['valid tokens'], $test['invalid tokens']);
++      shuffle($tokens);
++
++      $invalid_tokens = token_get_invalid_tokens_by_context(implode(' ', $tokens), $test['types']);
++
++      sort($invalid_tokens);
++      sort($test['invalid tokens']);
++      $this->assertEqual($invalid_tokens, $test['invalid tokens'], 'Invalid tokens detected properly: ' . implode(', ', $invalid_tokens));
++    }
++  }
++}
+diff --git a/lib/Drupal/token/Tests/TokenUserTestCase.php b/lib/Drupal/token/Tests/TokenUserTestCase.php
+new file mode 100644
+index 0000000..c2013af
+--- /dev/null
++++ b/lib/Drupal/token/Tests/TokenUserTestCase.php
+@@ -0,0 +1,92 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\token\Tests\TokenUserTestCase.
++ */
++namespace Drupal\token\Tests;
++use Drupal\field\Field;
++
++/**
++ * Tests user tokens.
++ */
++class TokenUserTestCase extends TokenTestBase {
++  protected $account = NULL;
++
++  // User pictures only exist in standard now.
++  protected $profile = 'standard';
++
++  public static function getInfo() {
++    return array(
++      'name' => 'User token tests',
++      'description' => 'Test the user tokens.',
++      'group' => 'Token',
++    );
++  }
++
++  public function setUp() {
++    parent::setUp();
++
++    // Enable user pictures.
++    \Drupal::state()->set('user_pictures', 1);
++    \Drupal::state()->set('user_picture_file_size', '');
++
++    // Set up the pictures directory.
++    $picture_path = file_default_scheme() . '://' . \Drupal::state()->get('user_picture_path', 'pictures');
++    if (!file_prepare_directory($picture_path, FILE_CREATE_DIRECTORY)) {
++      $this->fail('Could not create directory ' . $picture_path . '.');
++    }
++
++    $this->account = $this->drupalCreateUser(array('administer users'));
++    $this->drupalLogin($this->account);
++  }
++
++  function testUserTokens() {
++    // Add a user picture to the account.
++    $image = current($this->drupalGetTestFiles('image'));
++    $edit = array('files[user_picture_0]' => drupal_realpath($image->uri));
++    $this->drupalPostForm('user/' . $this->account->id() . '/edit', $edit, t('Save'));
++
++    // Load actual user data from database.
++    $this->account = user_load($this->account->id(), TRUE);
++    $this->assertTrue(!empty($this->account->user_picture->target_id), 'User picture uploaded.');
++
++    $user_tokens = array(
++      'picture' => theme('user_picture', array('account' => $this->account)),
++      'picture:fid' => $this->account->user_picture->target_id,
++      'picture:size-raw' => 125,
++      'ip-address' => NULL,
++      'roles' => implode(', ', $this->account->getRoles()),
++    );
++    $this->assertTokens('user', array('user' => $this->account), $user_tokens);
++
++    // Remove the user picture field.
++    Field::fieldInfo()->getField('user', 'user_picture')->delete();
++
++    // Remove the simpletest-created user role.
++    $roles = $this->account->getRoles();
++    $this->account->removeRole(end($roles));
++
++    $user_tokens = array(
++      'picture' => NULL,
++      'picture:fid' => NULL,
++      'ip-address' => NULL,
++      'roles' => 'authenticated',
++      'roles:keys' => (string) DRUPAL_AUTHENTICATED_RID,
++    );
++    $this->assertTokens('user', array('user' => $this->account), $user_tokens);
++
++    // The ip address token should work for the current user token type.
++    $tokens = array(
++      'ip-address' => \Drupal::request()->getClientIp(),
++    );
++    $this->assertTokens('current-user', array(), $tokens);
++
++    $anonymous = drupal_anonymous_user();
++    $tokens = array(
++      'roles' => 'anonymous',
++      'roles:keys' => (string) DRUPAL_ANONYMOUS_RID,
++    );
++    $this->assertTokens('user', array('user' => $anonymous), $tokens);
++  }
++}
+diff --git a/tests/token_test.info b/tests/token_test.info
+deleted file mode 100644
+index a8c1aca..0000000
+--- a/tests/token_test.info
++++ /dev/null
+@@ -1,6 +0,0 @@
+-name = Token Test
+-description = Testing module for token functionality.
+-package = Testing
+-core = 7.x
+-files[] = token_test.module
+-hidden = TRUE
+diff --git a/tests/token_test.module b/tests/token_test.module
+deleted file mode 100644
+index 3174cb6..0000000
+--- a/tests/token_test.module
++++ /dev/null
+@@ -1,33 +0,0 @@
+-<?php
+-
+-/**
+- * @file
+- * Helper module for token tests.
+- */
+-
+-/**
+- * Implements hook_exit().
+- */
+-function token_test_exit() {
+-  if ($debug = variable_get('token_page_tokens', array())) {
+-    $debug += array('tokens' => array(), 'data' => array(), 'options' => array());
+-    foreach (array_keys($debug['tokens']) as $token) {
+-      $debug['values'][$token] = token_replace($token, $debug['data'], $debug['options']);
+-    }
+-    variable_set('token_page_tokens', $debug);
+-  }
+-}
+-
+-/**
+- * Implements hook_date_format_types().
+- *
+- * @todo Remove when http://drupal.org/node/1173706 is fixed.
+- */
+-function token_test_date_format_types() {
+-  $info['token_test'] = t('Token test date format');
+-
+-  // Explicitly set the variable here as well.
+-  variable_set('date_format_token_test', 'Y');
+-
+-  return $info;
+-}
+diff --git a/tests/token_test/config/system.date_format.token_test.yml b/tests/token_test/config/system.date_format.token_test.yml
+new file mode 100644
+index 0000000..43e8a62
+--- /dev/null
++++ b/tests/token_test/config/system.date_format.token_test.yml
+@@ -0,0 +1,9 @@
++id: token_test
++uuid: 3A60E8ED-25C7-4402-8F2A-C305B8916B0E
++label: 'Token test'
++status: true
++langcode: en
++locked: true
++pattern:
++  php: Y
++  intl: yyyy
+diff --git a/tests/token_test/token_test.info.yml b/tests/token_test/token_test.info.yml
+new file mode 100644
+index 0000000..0068679
+--- /dev/null
++++ b/tests/token_test/token_test.info.yml
+@@ -0,0 +1,6 @@
++type: module
++name: Token Test
++description: Testing module for token functionality.
++package: Testing
++core: 8.x
++hidden: TRUE
+diff --git a/tests/token_test/token_test.module b/tests/token_test/token_test.module
+new file mode 100644
+index 0000000..5736b8d
+--- /dev/null
++++ b/tests/token_test/token_test.module
+@@ -0,0 +1,19 @@
++<?php
++
++/**
++ * @file
++ * Helper module for token tests.
++ */
++
++/**
++ * Implements hook_page_alter().
++ */
++function token_test_page_alter() {
++  if ($debug = \Drupal::state()->get('token_page_tokens', array())) {
++    $debug += array('tokens' => array(), 'data' => array(), 'options' => array());
++    foreach (array_keys($debug['tokens']) as $token) {
++      $debug['values'][$token] = \Drupal::token()->replace($token, $debug['data'], $debug['options']);
++    }
++    \Drupal::state()->set('token_page_tokens', $debug);
++  }
++}
+diff --git a/token.drush.inc b/token.drush.inc
+deleted file mode 100644
+index fc32357..0000000
+--- a/token.drush.inc
++++ /dev/null
+@@ -1,22 +0,0 @@
+-<?php
+-
+-/**
+- * @file
+- * Drush integration for the Token module.
+- */
+-
+-/**
+- * Implements hook_drush_cache_clear().
+- */
+-function token_drush_cache_clear(&$types) {
+-  if (function_exists('module_exists') && module_exists('token')) {
+-    $types['token'] = 'drush_token_cache_clear_token_info';
+-  }
+-}
+-
+-/**
+- * Clear caches internal to Token module.
+- */
+-function drush_token_cache_clear_token_info() {
+-  token_clear_cache();
+-}
+diff --git a/token.info b/token.info
+deleted file mode 100644
+index 4a00628..0000000
+--- a/token.info
++++ /dev/null
+@@ -1,4 +0,0 @@
+-name = Token
+-description = Provides a user interface for the Token API and some missing core tokens.
+-core = 7.x
+-files[] = token.test
+diff --git a/token.info.yml b/token.info.yml
+new file mode 100644
+index 0000000..cccc5b8
+--- /dev/null
++++ b/token.info.yml
+@@ -0,0 +1,4 @@
++type: module
++name: Token
++description: Provides a user interface for the Token API and some missing core tokens.
++core: 8.x
+diff --git a/token.install b/token.install
+index c2b57fd..5b0286f 100644
+--- a/token.install
++++ b/token.install
+@@ -10,7 +10,6 @@
+  */
+ function token_requirements($phase = 'runtime') {
+   $requirements = array();
+-  $t = get_t();
+ 
+   if ($phase == 'runtime') {
+     // Check for various token definition problems.
+@@ -28,10 +27,10 @@ function token_requirements($phase = 'runtime') {
+     }
+     if (!empty($token_problems)) {
+       $requirements['token_problems'] = array(
+-        'title' => $t('Tokens'),
+-        'value' => $t('Problems detected'),
++        'title' => t('Tokens'),
++        'value' => t('Problems detected'),
+         'severity' => REQUIREMENT_WARNING,
+-        'description' => '<p>' . implode('</p><p>', $token_problems) . '</p>', //theme('item_list', array('items' => $token_problems)),
++        'description' => '<p>' . implode('</p><p>', $token_problems) . '</p>',
+       );
+     }
+   }
+@@ -40,52 +39,31 @@ function token_requirements($phase = 'runtime') {
+ }
+ 
+ /**
+- * Implements hook_schema().
++ * Implements hook_install().
+  */
+-function token_schema() {
+-  $schema['cache_token'] = drupal_get_schema_unprocessed('system', 'cache');
+-  $schema['cache_token']['description'] = 'Cache table for token information.';
+-  return $schema;
+-}
+-
+-/**
+- * Add the cache_token table.
+- */
+-function token_update_7000() {
+-  if (!db_table_exists('cache_token')) {
+-    $schema = drupal_get_schema_unprocessed('system', 'cache');
+-    $schema['description'] = 'Cache table for token information.';
+-    db_create_table('cache_token', $schema);
++function token_install() {
++  // Create a token view mode for each entity type.
++  $info = \Drupal::entityManager()->getDefinitions();
++  foreach ($info as $entity_type => $entity_type_info) {
++    // We're only interested in entity types with a view builder.
++    if (!$entity_type_info->getViewBuilderClass()) {
++      continue;
++    }
++    // Try to find a token view mode for that entity type.
++    $storage_controller = \Drupal::entityManager()->getStorageController('view_mode');
++    // Add a token view mode if it does not already exist.
++    if (!$storage_controller->load("$entity_type.token")) {
++      $storage_controller->create(array(
++        'targetEntityType' => $entity_type,
++        'id' => "$entity_type.token",
++        'status' => TRUE,
++        'label' => t('Token'),
++      ))->save();
++    }
+   }
+ }
+ 
+ /**
+- * Deprecate and disable the token_actions module.
+- */
+-function token_update_7001() {
+-  module_disable(array('token_actions'));
+-  return 'The Token actions module has been deprecated by the updated system module actions that support tokens.';
+-}
+-
+-/**
+- * Migrate old token_actions module actions to system actions.
+- */
+-//function token_update_700X() {
+-//  $actions = db_query("SELECT aid, type, callback, parameters, label FROM {actions} WHERE type = 'system' AND callback IN ('token_actions_message_action', 'token_actions_send_email_action', 'token_actions_goto_action')")->fetchAll();
+-//  foreach ($actions as $action) {
+-//    $action->parameters = unserialize($action->parameters);
+-//    foreach ($action->parameters as $key => $value) {
+-//      if (is_string($value)) {
+-//        $action->parameters[$key] = token_update_token_text($value);
+-//      }
+-//    }
+-//    $action->callback = str_replace('token_actions_', '', $action->callback);
+-//    actions_save($action->callback, $action->type, $action->parameters, $action->label, $action->aid);
+-//  }
+-//  return 'Token actions module actions migrated to system module actions. You may still want to verify that the actions were upgraded correctly.';
+-//}
+-
+-/**
+  * Build a list of Drupal 6 tokens and their Drupal 7 token names.
+  */
+ function _token_upgrade_token_list() {
+diff --git a/token.module b/token.module
+index 926db6d..6bc9698 100644
+--- a/token.module
++++ b/token.module
+@@ -4,6 +4,8 @@
+  * @file
+  * Enhances the token API in core: adds a browseable UI, missing tokens, etc.
+  */
++use Drupal\Component\Utility\String;
++use Drupal\Core\Render\Element;
+ 
+ /**
+  * The maximum depth for token tree recursion.
+@@ -11,7 +13,7 @@
+ define('TOKEN_MAX_DEPTH', 9);
+ 
+ /**
+- * Implements hook_help().
++ * Impelements hook_help().
+  */
+ function token_help($path, $arg) {
+   if ($path == 'admin/help#token') {
+@@ -73,16 +75,8 @@ function token_menu() {
+     'file' => 'token.pages.inc',
+   );*/
+ 
+-  $items['token/tree'] = array(
+-    'page callback' => 'token_page_output_tree',
+-    'access callback' => TRUE,
+-    'type' => MENU_CALLBACK,
+-    'file' => 'token.pages.inc',
+-    'theme callback' => 'ajax_base_page_theme',
+-  );
+-
+   // Devel token pages.
+-  if (module_exists('devel')) {
++  if (\Drupal::moduleHandler()->moduleExists('devel')) {
+     $items['node/%node/devel/token'] = array(
+       'title' => 'Tokens',
+       'page callback' => 'token_devel_token_object',
+@@ -140,7 +134,7 @@ function token_admin_menu_output_alter(&$content) {
+     '#title' => t('Token registry'),
+     '#href' => 'token/flush-cache',
+     '#options' => array(
+-      'query' => drupal_get_destination() + array('token' => drupal_get_token('token/flush-cache')),
++      'query' => drupal_get_destination() + array('token' => \Drupal::csrfToken()->get('token/flush-cache')),
+     ),
+   );
+ }
+@@ -154,37 +148,16 @@ function token_type_load($token_type) {
+  * Implements hook_theme().
+  */
+ function token_theme() {
+-  $info['tree_table'] = array(
+-    'variables' => array(
+-      'header' => array(),
+-      'rows' => array(),
+-      'attributes' => array(),
+-      'empty' => '',
+-      'caption' => '',
+-    ),
+-    'file' => 'token.pages.inc',
+-  );
+-  $info['token_tree'] = array(
+-    'variables' => array(
+-      'token_types' => array(),
+-      'global_types' => TRUE,
+-      'click_insert' => TRUE,
+-      'show_restricted' => FALSE,
+-      'recursion_limit' => 3,
+-      'dialog' => FALSE,
++  return array(
++    'tree_table' => array(
++      'variables' => array('header' => array(), 'rows' => array(), 'attributes' => array(), 'empty' => '', 'caption' => ''),
++      'file' => 'token.pages.inc',
+     ),
+-    'file' => 'token.pages.inc',
+-  );
+-  $info['token_tree_link'] = array(
+-    'variables' => array(
+-      'text' => NULL,
+-      'options' => array(),
+-      'dialog' => TRUE,
++    'token_tree' => array(
++      'variables' => array('token_types' => array(), 'global_types' => TRUE, 'click_insert' => TRUE, 'show_restricted' => FALSE, 'recursion_limit' => 3),
++      'file' => 'token.pages.inc',
+     ),
+-    'file' => 'token.pages.inc',
+   );
+-
+-  return $info;
+ }
+ 
+ /**
+@@ -204,17 +177,6 @@ function token_library() {
+     ),
+   );
+ 
+-  $libraries['dialog'] = array(
+-    'title' => 'Token dialog',
+-    'version' => '1.0',
+-    'js' => array(
+-      drupal_get_path('module', 'token') . '/token.js' => array(),
+-    ),
+-    'dependencies' => array(
+-      array('system', 'ui.dialog'),
+-    ),
+-  );
+-
+   return $libraries;
+ }
+ 
+@@ -244,11 +206,12 @@ function token_form_alter(&$form, $form_state, $form_id) {
+ /**
+  * Implements hook_block_view_alter().
+  */
+-function token_block_view_alter(&$data, $block) {
+-  if (!empty($block->title) && $block->title != '<none>') {
+-    // Perform unsanitized token replacement since _block_render_blocks() will
+-    // call check_plain() on $block->title.
+-    $block->title = token_replace($block->title, array(), array('sanitize' => FALSE));
++function token_block_view_alter(&$data, \Drupal\block\BlockPluginInterface $block) {
++  $config = $block->getConfiguration();
++  $label = $config['label'];
++  if ($label != '<none>') {
++    //$block->setConfigurationValue('label', \Drupal::token()->replace($label, array(), array('sanitize' => TRUE)));
++    $data['#configuration']['label'] = \Drupal::token()->replace($label, array(), array('sanitize' => TRUE));
+   }
+ }
+ 
+@@ -266,7 +229,7 @@ function token_form_block_admin_configure_alter(&$form, $form_state) {
+   $form['settings']['title']['#description'] .= ' ' . t('This field supports tokens.');
+   // @todo Figure out why this token validation does not seem to be working here.
+   $form['settings']['title']['#element_validate'][] = 'token_element_validate';
+-  $form['settings']['title'] += array('#token_types' => array());
++  $form['settings']['title']['#token_types'] = array();
+ }
+ 
+ /**
+@@ -274,7 +237,7 @@ function token_form_block_admin_configure_alter(&$form, $form_state) {
+  */
+ function token_field_widget_form_alter(&$element, &$form_state, $context) {
+   if (!empty($element['#description']) && is_string($element['#description'])) {
+-    $element['#description'] = filter_xss_admin(token_replace($element['#description']));
++    $element['#description'] = \Drupal::token()->replace($element['#description']);
+   }
+ }
+ 
+@@ -313,18 +276,15 @@ function token_field_display_alter(&$display, $context) {
+     // If the token view mode fell back to the 'default' view mode, then
+     // use the default token formatter.
+     if (empty($view_mode_settings[$context['view_mode']]['custom_settings'])) {
+-      $field_type_info = field_info_field_types($context['field']['type']);
+-
+-      // If the field has specified a specific formatter to be used by default
+-      // with tokens, use that, otherwise use the default formatter.
+-      $formatter = !empty($field_type_info['default_token_formatter']) ? $field_type_info['default_token_formatter'] : $field_type_info['default_formatter'];
+-
+-      // Now that we have a formatter, fill in all the settings.
+-      $display['type'] = $formatter;
+-      $formatter_info = field_info_formatter_types($formatter);
+-      $display['settings'] = isset($formatter_info['settings']) ? $formatter_info['settings'] : array();
+-      $display['settings']['label'] = 'hidden';
+-      $display['module'] = $formatter_info['module'];
++      $field_type_info = \Drupal::service('plugin.manager.field.field_type')->getDefinition($context['field']['type']);
++      if (!empty($field_type_info['default_token_formatter'])) {
++        $display['type'] = $field_type_info['default_token_formatter'];
++
++        $formatter_info = \Drupal::service('plugin.manager.field.formatter')->getDefinition($display['type']);
++        $display['settings'] = isset($formatter_info['settings']) ? $formatter_info['settings'] : array();
++        $display['settings']['label'] = 'hidden';
++        $display['module'] = $formatter_info['module'];
++      }
+     }
+   }
+ }
+@@ -355,7 +315,7 @@ function token_field_delete_instance($instance) {
+  */
+ function token_clear_cache() {
+   if (db_table_exists('cache_token')) {
+-    cache_clear_all('*', 'cache_token', TRUE);
++    cache('cache_token')->flush();
+   }
+   drupal_static_reset('token_get_info');
+   drupal_static_reset('token_get_global_token_types');
+@@ -378,26 +338,23 @@ function token_clear_cache() {
+  * @see token_entity_info_alter()
+  * @see http://drupal.org/node/737726
+  */
+-function token_get_entity_mapping($value_type = 'token', $value = NULL, $fallback = FALSE) {
++function token_get_entity_mapping($value_type = 'token', $value = NULL) {
+   $mapping = &drupal_static(__FUNCTION__, array());
+ 
+   if (empty($mapping)) {
+-    foreach (entity_get_info() as $entity_type => $info) {
+-      $mapping[$entity_type] = !empty($info['token type']) ? $info['token type'] : $entity_type;
++    foreach (\Drupal::entityManager()->getDefinitions() as $entity_type => $info) {
++      $mapping[$entity_type] = $info->get('token type') ? $info->get('token type') : $entity_type;
+     }
+-    // Allow modules to alter the mapping array.
+-    drupal_alter('token_entity_mapping', $mapping);
+   }
+ 
+   if (!isset($value)) {
+-    return $value_type == 'token' ? array_flip($mapping) : $mapping;
++    return $mapping;
+   }
+   elseif ($value_type == 'token') {
+-    $return = array_search($value, $mapping);
+-    return $return !== FALSE ? $return : ($fallback ? $value : FALSE);
++    return array_search($value, $mapping);
+   }
+   elseif ($value_type == 'entity') {
+-    return isset($mapping[$value]) ? $mapping[$value] : ($fallback ? $value : FALSE);
++    return isset($mapping[$value]) ? $mapping[$value] : FALSE;
+   }
+ }
+ 
+@@ -412,21 +369,7 @@ function token_get_entity_mapping($value_type = 'token', $value = NULL, $fallbac
+  */
+ function token_entity_info_alter(&$info) {
+   foreach (array_keys($info) as $entity_type) {
+-    // Add a token view mode if it does not already exist. Only work with
+-    // fieldable entities.
+-    if (!empty($info[$entity_type]['fieldable'])) {
+-      if (!isset($info[$entity_type])) {
+-        $info[$entity_type]['view modes'] = array();
+-      }
+-      if (!isset($info[$entity_type]['view modes']['token'])) {
+-        $info[$entity_type]['view modes']['token'] = array(
+-          'label' => t('Tokens'),
+-          'custom settings' => FALSE,
+-        );
+-      }
+-    }
+-
+-    if (!empty($info[$entity_type]['token type'])) {
++    if ($info[$entity_type]->get('token type')) {
+       // If the entity's token type is already defined, great!
+       continue;
+     }
+@@ -436,28 +379,31 @@ function token_entity_info_alter(&$info) {
+       case 'taxonomy_term':
+       case 'taxonomy_vocabulary':
+         // Stupid taxonomy token types...
+-        $info[$entity_type]['token type'] = str_replace('taxonomy_', '', $entity_type);
++        $info[$entity_type]->set('token type', str_replace('taxonomy_', '', $entity_type));
+         break;
++
+       default:
+         // By default the token type is the same as the entity type.
+-        $info[$entity_type]['token type'] = $entity_type;
++        $info[$entity_type]->set('token type', $entity_type);
+         break;
+     }
+   }
+ }
+ 
+ /**
++ * Implements hook_entity_view_modes_info().
++ */
++
++/**
+  * Implements hook_module_implements_alter().
+  *
+  * Adds missing token support for core modules.
+  */
+ function token_module_implements_alter(&$implementations, $hook) {
+-  module_load_include('inc', 'token', 'token.tokens');
+-
+-  if ($hook == 'tokens' || $hook == 'token_info' || $hook == 'token_info_alter' || $hook == 'tokens_alter') {
++  if ($hook == 'tokens' || $hook == 'token_info') {
+     foreach (_token_core_supported_modules() as $module) {
+-      if (module_exists($module) && function_exists($module . '_' . $hook)) {
+-        $implementations[$module] = FALSE;
++      if (\Drupal::moduleHandler()->moduleExists($module)) {
++        $implementations[$module] = TRUE;
+       }
+     }
+     // Move token.module to get included first since it is responsible for
+@@ -494,8 +440,6 @@ function token_flush_caches() {
+  * @see hook_token_info_alter()
+  */
+ function token_get_info($token_type = NULL, $token = NULL) {
+-  global $language;
+-
+   // Use the advanced drupal_static() pattern, since this is called very often.
+   static $drupal_static_fast;
+   if (!isset($drupal_static_fast)) {
+@@ -504,13 +448,14 @@ function token_get_info($token_type = NULL, $token = NULL) {
+   $token_info = &$drupal_static_fast['token_info'];
+ 
+   if (empty($token_info)) {
+-    $cid = "info:{$language->language}";
++    $langcode = \Drupal::languageManager()->getCurrentLanguage()->id;
++    $cid = "info:{$langcode}";
+ 
+-    if ($cache = cache_get($cid, 'cache_token')) {
++    if ($cache = cache('cache_token')->get($cid)) {
+       $token_info = $cache->data;
+     }
+     else {
+-      $token_info = token_info();
++      $token_info = \Drupal::token()->getInfo();
+ 
+       foreach (array_keys($token_info['types']) as $type_key) {
+         if (isset($token_info['types'][$type_key]['type'])) {
+@@ -536,7 +481,7 @@ function token_get_info($token_type = NULL, $token = NULL) {
+       }
+ 
+       // Store info in cache for future use.
+-      cache_set($cid, $token_info, 'cache_token');
++      cache('cache_token')->set($cid, $token_info);
+     }
+   }
+ 
+@@ -621,7 +566,7 @@ function token_get_invalid_tokens_by_context($value, $valid_types = array()) {
+   }
+ 
+   $invalid_tokens = array();
+-  $value_tokens = is_string($value) ? token_scan($value) : $value;
++  $value_tokens = is_string($value) ? \Drupal::token()->scan($value) : $value;
+ 
+   foreach ($value_tokens as $type => $tokens) {
+     if (!in_array($type, $valid_types)) {
+@@ -672,7 +617,7 @@ function token_get_invalid_tokens($type, $tokens) {
+       }
+       else {
+         // Resursively check the chained tokens.
+-        $sub_tokens = token_find_with_prefix(array($token => $full_token), $parts[0]);
++        $sub_tokens = \Drupal::token()->findWithPrefix(array($token => $full_token), $parts[0]);
+         $invalid_tokens = array_merge($invalid_tokens, token_get_invalid_tokens($sub_token_info['type'], $sub_tokens));
+       }
+     }
+@@ -709,29 +654,29 @@ function token_element_validate(&$element, &$form_state) {
+     return $element;
+   }
+ 
+-  $tokens = token_scan($value);
++  $tokens = \Drupal::token()->scan($value);
+   $title = empty($element['#title']) ? $element['#parents'][0] : $element['#title'];
+   // @todo Find old Drupal 6 style tokens and add them to invalid tokens.
+ 
+   // Validate if an element must have a minimum number of tokens.
+   if (isset($element['#min_tokens']) && count($tokens) < $element['#min_tokens']) {
+     // @todo Change this error message to include the minimum number.
+-    $error = format_plural($element['#min_tokens'], 'The %element-title cannot contain fewer than one token.', 'The %element-title must contain at least @count tokens.', array('%element-title' => $title));
+-    form_error($element, $error);
++    $error = \Drupal::translation()->formatPlural($element['#min_tokens'], 'The %element-title cannot contain fewer than one token.', 'The %element-title must contain at least @count tokens.', array('%element-title' => $title));
++    \Drupal::formBuilder()->setError($element, $error);
+   }
+ 
+   // Validate if an element must have a maximum number of tokens.
+   if (isset($element['#max_tokens']) && count($tokens) > $element['#max_tokens']) {
+     // @todo Change this error message to include the maximum number.
+-    $error = format_plural($element['#max_tokens'], 'The %element-title must contain as most one token.', 'The %element-title must contain at most @count tokens.', array('%element-title' => $title));
+-    form_error($element, $error);
++    $error = \Drupal::translation()->formatPlural($element['#max_tokens'], 'The %element-title must contain as most one token.', 'The %element-title must contain at most @count tokens.', array('%element-title' => $title));
++    \Drupal::formBuilder()->setError($element, $error);
+   }
+ 
+   // Check if the field defines specific token types.
+-  if (isset($element['#token_types'])) {
++  if (!empty($element['#token_types'])) {
+     $invalid_tokens = token_get_invalid_tokens_by_context($tokens, $element['#token_types']);
+     if ($invalid_tokens) {
+-      form_error($element, t('The %element-title is using the following invalid tokens: @invalid-tokens.', array('%element-title' => $title, '@invalid-tokens' => implode(', ', $invalid_tokens))));
++      \Drupal::formBuilder()->setError($element, t('The %element-title is using the following invalid tokens: @invalid-tokens.', array('%element-title' => $title, '@invalid-tokens' => implode(', ', $invalid_tokens))));
+     }
+   }
+ 
+@@ -749,28 +694,20 @@ function token_element_validate_token_context(&$element, &$form_state) {
+  * Implements hook_form_FORM_ID_alter().
+  */
+ function token_form_field_ui_field_edit_form_alter(&$form, $form_state) {
+-  if (!isset($form['instance']) || !empty($form['#field']['locked'])) {
+-    return;
+-  }
+-
+-  if (($form['#field']['type'] == 'file' || $form['#field']['type'] == 'image') && isset($form['instance']['settings']['file_directory']) && !module_exists('filefield_paths')) {
++  if (($form['#field']['type'] == 'file' || $form['#field']['type'] == 'image') && isset($form['instance']['settings']['file_directory']) && !\Drupal::moduleHandler()->moduleExists('filefield_paths')) {
+     // GAH! We can only support global tokens in the upload file directory path.
+     $form['instance']['settings']['file_directory']['#element_validate'][] = 'token_element_validate';
+-    $form['instance']['settings']['file_directory'] += array('#token_types' => array());
++    $form['instance']['settings']['file_directory']['#token_types'] = array();
++    $form['instance']['settings']['token_tree'] = array(
++      '#theme' => 'token_tree',
++      '#token_types' => array(),
++      '#weight' => $form['instance']['settings']['file_directory']['#weight'] + 0.5,
++    );
+     $form['instance']['settings']['file_directory']['#description'] .= ' ' . t('This field supports tokens.');
+   }
+ 
+   // Note that the description is tokenized via token_field_widget_form_alter().
+   $form['instance']['description']['#description'] .= '<br />' . t('This field supports tokens.');
+-  $form['instance']['description']['#element_validate'][] = 'token_element_validate';
+-  $form['instance']['description'] += array('#token_types' => array());
+-
+-  $form['instance']['settings']['token_tree'] = array(
+-    '#theme' => 'token_tree',
+-    '#token_types' => array(),
+-    '#dialog' => TRUE,
+-    '#weight' => $form['instance']['description']['#weight'] + 0.5,
+-  );
+ }
+ 
+ /**
+@@ -789,7 +726,6 @@ function token_form_system_actions_configure_alter(&$form, $form_state) {
+       $form['token_tree'] = array(
+         '#theme' => 'token_tree',
+         '#token_types' => 'all',
+-        '#dialog' => TRUE,
+         '#weight' => 100,
+       );
+       // @todo Add token validation to the action fields that can use tokens.
+@@ -806,7 +742,7 @@ function token_form_system_actions_configure_alter(&$form, $form_state) {
+ function token_form_user_admin_settings_alter(&$form, &$form_state) {
+   $email_token_help = t('Available variables are: [site:name], [site:url], [user:name], [user:mail], [site:login-url], [site:url-brief], [user:edit-url], [user:one-time-login-url], [user:cancel-url].');
+ 
+-  foreach (element_children($form) as $key) {
++  foreach (Element::children($form) as $key) {
+     $element = &$form[$key];
+ 
+     // Remove the crummy default token help text.
+@@ -833,7 +769,7 @@ function token_form_user_admin_settings_alter(&$form, &$form_state) {
+         continue 2;
+     }
+ 
+-    foreach (element_children($element) as $sub_key) {
++    foreach (Element::children($element) as $sub_key) {
+       if (!isset($element[$sub_key]['#type'])) {
+         continue;
+       }
+@@ -851,11 +787,10 @@ function token_form_user_admin_settings_alter(&$form, &$form_state) {
+   }
+ 
+   // Add the token tree UI.
+-  $form['email']['token_tree'] = array(
++  $form['token_tree'] = array(
+     '#theme' => 'token_tree',
+     '#token_types' => array('user'),
+     '#show_restricted' => TRUE,
+-    '#dialog' => TRUE,
+     '#weight' => 90,
+   );
+ }
+@@ -877,8 +812,6 @@ function token_form_user_admin_settings_alter(&$form, &$form_state) {
+  *   An optional array with the current parents of the tokens.
+  */
+ function token_build_tree($token_type, array $options = array()) {
+-  global $language;
+-
+   // Static cache of already built token trees.
+   $trees = &drupal_static(__FUNCTION__, array());
+ 
+@@ -898,18 +831,19 @@ function token_build_tree($token_type, array $options = array()) {
+     $token_type = $entity_token_type;
+   }
+ 
+-  $tree_cid = "tree:{$token_type}:{$language->language}:{$options['depth']}";
++  $langcode = \Drupal::languageManager()->getCurrentLanguage()->id;
++  $tree_cid = "tree:{$token_type}:{$langcode}:{$options['depth']}";
+ 
+   // If we do not have this base tree in the static cache, check {cache_token}
+   // otherwise generate and store it in the cache.
+   if (!isset($trees[$tree_cid])) {
+-    if ($cache = cache_get($tree_cid, 'cache_token')) {
++    if ($cache = cache('cache_token')->get($tree_cid)) {
+       $trees[$tree_cid] = $cache->data;
+     }
+     else {
+       $options['parents'] = array();
+       $trees[$tree_cid] = _token_build_tree($token_type, $options);
+-      cache_set($tree_cid, $trees[$tree_cid], 'cache_token');
++      cache('cache_token')->set($tree_cid, $trees[$tree_cid]);
+     }
+   }
+ 
+@@ -932,7 +866,7 @@ function token_build_tree($token_type, array $options = array()) {
+       }
+     }
+     if (!empty($token_values)) {
+-      $token_values = token_generate($token_type, $token_values, $options['data']);
++      $token_values = \Drupal::token()->generate($token_type, $token_values, $options['data']);
+       foreach ($token_values as $token => $replacement) {
+         $tree[$token]['value'] = $replacement;
+       }
+@@ -1016,40 +950,6 @@ function _token_build_tree($token_type, array $options) {
+ }
+ 
+ /**
+- * Get a translated menu link by its mlid, without access checking.
+- *
+- * This function is a copy of menu_link_load() but with its own cache and a
+- * simpler query to load the link. This also skips normal menu link access
+- * checking by using _token_menu_link_translate().
+- *
+- * @param $mlid
+- *   The mlid of the menu item.
+- *
+- * @return
+- *   A menu link translated for rendering.
+- *
+- * @see menu_link_load()
+- * @see _token_menu_link_translate()
+- */
+-function token_menu_link_load($mlid) {
+-  $cache = &drupal_static(__FUNCTION__, array());
+-
+-  if (!is_numeric($mlid)) {
+-    return FALSE;
+-  }
+-
+-  if (!isset($cache[$mlid])) {
+-    $item = db_query("SELECT * FROM {menu_links} ml LEFT JOIN {menu_router} m ON m.path = ml.router_path WHERE ml.mlid = :mlid", array(':mlid' => $mlid))->fetchAssoc();
+-    if (!empty($item)) {
+-      _token_menu_link_translate($item);
+-    }
+-    $cache[$mlid] = $item;
+-  }
+-
+-  return $cache[$mlid];
+-}
+-
+-/**
+  * Get a translated book menu link by its mlid, without access checking.
+  *
+  * This function is a copy of book_link_load() but with its own cache and a
+@@ -1122,7 +1022,7 @@ function _token_menu_link_translate(&$item) {
+   // options array. For performance reasons we only invoke this hook if the link
+   // has the 'alter' flag set in the options array.
+   if (!empty($item['options']['alter'])) {
+-    drupal_alter('translated_menu_link', $item, $map);
++    \Drupal::moduleHandler()->alter('translated_menu_link', $item, $map);
+   }
+ 
+   return $map;
+@@ -1154,7 +1054,7 @@ function token_clean_token_name($name) {
+  */
+ function token_render_array(array $array, array $options = array()) {
+   $rendered = array();
+-  foreach (element_children($array) as $key) {
++  foreach (token_element_children($array) as $key) {
+     $value = $array[$key];
+     $rendered[] = is_array($value) ? render($value) : (string) $value;
+   }
+@@ -1171,7 +1071,7 @@ function token_render_array(array $array, array $options = array()) {
+ function token_render_array_value($value, array $options = array()) {
+   $rendered = is_array($value) ? render($value) : (string) $value;
+   if (!empty($options['sanitize'])) {
+-    $rendered = check_plain($rendered);
++    $rendered = String::checkPlain($rendered);
+   }
+   return $rendered;
+ }
+@@ -1185,7 +1085,7 @@ function token_render_cache_get($elements) {
+   }
+   $bin = isset($elements['#cache']['bin']) ? $elements['#cache']['bin'] : 'cache';
+ 
+-  if (!empty($cid) && $cache = cache_get($cid, $bin)) {
++  if (!empty($cid) && $cache = cache($bin)->get($cid)) {
+     // Add additional libraries, JavaScript, CSS and other data attached
+     // to this element.
+     if (isset($cache->data['#attached'])) {
+@@ -1202,14 +1102,14 @@ function token_render_cache_get($elements) {
+  */
+ function token_render_cache_set(&$markup, $elements) {
+   // This should only run of drupal_render_cache_set() did not.
+-  if (in_array($_SERVER['REQUEST_METHOD'], array('GET', 'HEAD'))) {
++  if (in_array(\Drupal::request()->server->get('REQUEST_METHOD'), array('GET', 'HEAD'))) {
+     return FALSE;
+   }
+ 
+-  $original_method = $_SERVER['REQUEST_METHOD'];
+-  $_SERVER['REQUEST_METHOD'] = 'GET';
++  $original_method = \Drupal::request()->server->get('REQUEST_METHOD');
++  \Drupal::request()->server->set('REQUEST_METHOD', 'GET');
+   drupal_render_cache_set($markup, $elements);
+-  $_SERVER['REQUEST_METHOD'] = $original_method;
++  \Drupal::request()->server->set('REQUEST_METHOD', $original_method);
+ }
+ 
+ function token_menu_link_load_all_parents($mlid) {
+@@ -1222,7 +1122,7 @@ function token_menu_link_load_all_parents($mlid) {
+   if (!isset($cache[$mlid])) {
+     $cache[$mlid] = array();
+     $plid = db_query("SELECT plid FROM {menu_links} WHERE mlid = :mlid", array(':mlid' => $mlid))->fetchField();
+-    while ($plid && $parent = token_menu_link_load($plid)) {
++    while ($plid && $parent = menu_link_load($plid)) {
+       $cache[$mlid] = array($plid => $parent['title']) + $cache[$mlid];
+       $plid = $parent['plid'];
+     }
+@@ -1240,11 +1140,11 @@ function token_taxonomy_term_load_all_parents($tid) {
+ 
+   if (!isset($cache[$tid])) {
+     $cache[$tid] = array();
+-    $parents = taxonomy_get_parents_all($tid);
++    $parents = taxonomy_term_load_parents_all($tid);
+     array_shift($parents); // Remove this term from the array.
+     $parents = array_reverse($parents);
+     foreach ($parents as $term) {
+-      $cache[$tid][$term->tid] = entity_label('taxonomy_term', $term);
++      $cache[$tid][$term->id()] = $term->label();
+     }
+   }
+ 
+@@ -1265,9 +1165,9 @@ function token_taxonomy_term_load_all_parents($tid) {
+  * @see token_menu_link_load()
+  */
+ function token_node_menu_link_load($node) {
+-  $cache = &drupal_static(__FUNCTIon__, array());
++  $cache = &drupal_static(__FUNCTION__, array());
+ 
+-  if (!isset($cache[$node->nid])) {
++  if (!isset($cache[$node->id()])) {
+     $mlid = FALSE;
+ 
+     // Nodes do not have their menu links loaded via menu_node_load().
+@@ -1275,15 +1175,47 @@ function token_node_menu_link_load($node) {
+       // We need to clone the node as menu_node_prepare() may cause data loss.
+       // @see http://drupal.org/node/1317926
+       $menu_node = clone $node;
+-      menu_node_prepare($menu_node);
++      $form_state = array();
++      menu_node_prepare_form($menu_node, NULL, NULL, $form_state);
+       $mlid = !empty($menu_node->menu['mlid']) ? $menu_node->menu['mlid'] : FALSE;
+     }
+     else {
+       $mlid = !empty($node->menu['mlid']) ? $node->menu['mlid'] : FALSE;
+     }
+ 
+-    $cache[$node->nid] = $mlid;
++    $cache[$node->id()] = $mlid;
++  }
++
++  return $cache[$node->id()] ? menu_link_load($cache[$node->id()]) : FALSE;
++}
++
++function token_element_children(&$elements, $sort = FALSE) {
++  // Do not attempt to sort elements which have already been sorted.
++  $sort = isset($elements['#sorted']) ? !$elements['#sorted'] : $sort;
++
++  // Filter out properties from the element, leaving only children.
++  $children = array();
++  $sortable = FALSE;
++  foreach ($elements as $key => $value) {
++    if ($key === '' || $key[0] !== '#') {
++      $children[$key] = $value;
++      if (is_array($value) && isset($value['#weight'])) {
++        $sortable = TRUE;
++      }
++    }
++  }
++  // Sort the children if necessary.
++  if ($sort && $sortable) {
++    uasort($children, 'element_sort');
++    // Put the sorted children back into $elements in the correct order, to
++    // preserve sorting if the same element is passed through
++    // element_children() twice.
++    foreach ($children as $key => $child) {
++      unset($elements[$key]);
++      $elements[$key] = $child;
++    }
++    $elements['#sorted'] = TRUE;
+   }
+ 
+-  return $cache[$node->nid] ? token_menu_link_load($cache[$node->nid]) : FALSE;
++  return array_keys($children);
+ }
+diff --git a/token.pages.inc b/token.pages.inc
+index 2341a9f..ef47d03 100644
+--- a/token.pages.inc
++++ b/token.pages.inc
+@@ -6,63 +6,6 @@
+  */
+ 
+ /**
+- * Theme a link to a token tree either as a regular link or a dialog.
+- */
+-function theme_token_tree_link($variables) {
+-  if (empty($variables['text'])) {
+-    $variables['text'] = t('Browse available tokens.');
+-  }
+-
+-  if (!empty($variables['dialog'])) {
+-    drupal_add_library('token', 'dialog');
+-    $variables['options']['attributes']['class'][] = 'token-dialog';
+-  }
+-
+-  $info = token_theme();
+-  $variables['options']['query']['options'] = array_intersect_key($variables, $info['token_tree']['variables']);
+-
+-  // We should never pass the dialog option to theme_token_tree(). It is only
+-  // used for this function.
+-  unset($variables['options']['query']['options']['dialog']);
+-
+-  // Add a security token so that the tree page should only work when used
+-  // when the dialog link is output with theme('token_tree_link').
+-  $variables['options']['query']['token'] = drupal_get_token('token-tree:' . serialize($variables['options']['query']['options']));
+-
+-  // Because PHP converts query strings with arrays into a different syntax on
+-  // the next request, the options have to be encoded with JSON in the query
+-  // string so that we can reliably decode it for token comparison.
+-  $variables['options']['query']['options'] = drupal_json_encode($variables['options']['query']['options']);
+-
+-  // Set the token tree to open in a separate window.
+-  $variables['options']['attributes'] + array('target' => '_blank');
+-
+-  return l($variables['text'], 'token/tree', $variables['options']);
+-}
+-
+-/**
+- * Page callback to output a token tree as an empty page.
+- */
+-function token_page_output_tree() {
+-  $options = isset($_GET['options']) ? drupal_json_decode($_GET['options']) : array();
+-
+-  // Check the token against the serialized options to prevent random access to
+-  // the token browser page.
+-  if (!isset($_GET['token']) || !drupal_valid_token($_GET['token'], 'token-tree:' . serialize($options))) {
+-    return MENU_ACCESS_DENIED;
+-  }
+-
+-  // Force the dialog option to be false so we're not creating a dialog within
+-  // a dialog.
+-  $options['dialog'] = FALSE;
+-
+-  $output = theme('token_tree', $options);
+-  print '<html><head>' . drupal_get_css() . drupal_get_js() . '</head>';
+-  print '<body class="token-tree">' . $output . '</body></html>';
+-  drupal_exit();
+-}
+-
+-/**
+  * Theme a tree table.
+  *
+  * @ingroup themeable
+@@ -89,10 +32,6 @@ function theme_tree_table($variables) {
+  * @ingroup themeable
+  */
+ function theme_token_tree($variables) {
+-  if (!empty($variables['dialog'])) {
+-    return theme_token_tree_link($variables);
+-  }
+-
+   $token_types = $variables['token_types'];
+   $info = token_get_info();
+ 
+@@ -231,7 +170,7 @@ function _token_clean_css_identifier($id) {
+ /**
+  * Menu callback; prints the available tokens and values for an object.
+  */
+-function token_devel_token_object($entity_type, $entity, $token_type = NULL) {
++function token_devel_token_object($entity_type, $entity) {
+   $header = array(
+     t('Token'),
+     t('Value'),
+@@ -243,10 +182,7 @@ function token_devel_token_object($entity_type, $entity, $token_type = NULL) {
+     'values' => TRUE,
+     'data' => array($entity_type => $entity),
+   );
+-  if (!isset($token_type)) {
+-    $token_type = $entity_type;
+-  }
+-  $tree = token_build_tree($token_type, $options);
++  $tree = token_build_tree($entity_type, $options);
+   foreach ($tree as $token => $token_info) {
+     if (!empty($token_info['restricted'])) {
+       continue;
+@@ -279,7 +215,7 @@ function token_devel_token_object($entity_type, $entity, $token_type = NULL) {
+  * Page callback to clear the token registry caches.
+  */
+ function token_flush_cache_callback() {
+-  if (!isset($_GET['token']) || !drupal_valid_token($_GET['token'], current_path())) {
++  if (!\Drupal::request()->query->has('token') || !\Drupal::csrfToken()->validate(\Drupal::request()->query->get('token'), current_path())) {
+     return MENU_NOT_FOUND;
+   }
+ 
+@@ -292,7 +228,7 @@ function token_autocomplete() {
+   $args = func_get_args();
+   $string = implode('/', $args);
+ 
+-  $token_info = token_info();
++  $token_info = \Drupal::token()->getInfo();
+ 
+   preg_match_all('/\[([^\s\]:]*):?([^\s\]]*)?\]?/', $string, $matches);
+   $types = $matches[1];
+@@ -310,7 +246,7 @@ function token_autocomplete() {
+ }
+ 
+ function token_autocomplete_type($string = '') {
+-  $token_info = token_info();
++  $token_info = \Drupal::token()->getInfo();
+   $types = $token_info['types'];
+   $matches = array();
+ 
+diff --git a/token.services.yml b/token.services.yml
+new file mode 100644
+index 0000000..71fe59b
+--- /dev/null
++++ b/token.services.yml
+@@ -0,0 +1,8 @@
++services:
++  cache.cache_token:
++    class: Drupal\Core\Cache\CacheBackendInterface
++    tags:
++      - { name: cache.bin }
++    factory_method: get
++    factory_service: cache_factory
++    arguments: [cache_token]
+diff --git a/token.test b/token.test
+deleted file mode 100644
+index 59fa645..0000000
+--- a/token.test
++++ /dev/null
+@@ -1,1095 +0,0 @@
+-<?php
+-
+-/**
+- * @file
+- * Test integration for the token module.
+- */
+-
+-/**
+- * Helper test class with some added functions for testing.
+- */
+-class TokenTestHelper extends DrupalWebTestCase {
+-  protected $profile = 'testing';
+-
+-  public function setUp($modules = array()) {
+-    $modules[] = 'path';
+-    $modules[] = 'token';
+-    $modules[] = 'token_test';
+-    parent::setUp($modules);
+-
+-    variable_set('clean_url', 1);
+-  }
+-
+-  function assertToken($type, array $data, $token, $expected, array $options = array()) {
+-    return $this->assertTokens($type, $data, array($token => $expected), $options);
+-  }
+-
+-  function assertTokens($type, array $data, array $tokens, array $options = array()) {
+-    $input = $this->mapTokenNames($type, array_keys($tokens));
+-    $replacements = token_generate($type, $input, $data, $options);
+-    foreach ($tokens as $name => $expected) {
+-      $token = $input[$name];
+-      if (!isset($expected)) {
+-        $this->assertTrue(!isset($values[$token]), t("Token value for @token was not generated.", array('@type' => $type, '@token' => $token)));
+-      }
+-      elseif (!isset($replacements[$token])) {
+-        $this->fail(t("Token value for @token was not generated.", array('@type' => $type, '@token' => $token)));
+-      }
+-      elseif (!empty($options['regex'])) {
+-        $this->assertTrue(preg_match('/^' . $expected . '$/', $replacements[$token]), t("Token value for @token was '@actual', matching regular expression pattern '@expected'.", array('@type' => $type, '@token' => $token, '@actual' => $replacements[$token], '@expected' => $expected)));
+-      }
+-      else {
+-        $this->assertIdentical($replacements[$token], $expected, t("Token value for @token was '@actual', expected value '@expected'.", array('@type' => $type, '@token' => $token, '@actual' => $replacements[$token], '@expected' => $expected)));
+-      }
+-    }
+-
+-    return $replacements;
+-  }
+-
+-  function mapTokenNames($type, array $tokens = array()) {
+-    $return = array();
+-    foreach ($tokens as $token) {
+-      $return[$token] = "[$type:$token]";
+-    }
+-    return $return;
+-  }
+-
+-  function assertNoTokens($type, array $data, array $tokens, array $options = array()) {
+-    $input = $this->mapTokenNames($type, $tokens);
+-    $replacements = token_generate($type, $input, $data, $options);
+-    foreach ($tokens as $name) {
+-      $token = $input[$name];
+-      $this->assertTrue(!isset($replacements[$token]), t("Token value for @token was not generated.", array('@type' => $type, '@token' => $token)));
+-    }
+-    return $values;
+-  }
+-
+-  function saveAlias($source, $alias, $language = LANGUAGE_NONE) {
+-    $alias = array(
+-      'source' => $source,
+-      'alias' => $alias,
+-      'language' => $language,
+-    );
+-    path_save($alias);
+-    return $alias;
+-  }
+-
+-  function saveEntityAlias($entity_type, $entity, $alias, $language = LANGUAGE_NONE) {
+-    $uri = entity_uri($entity_type, $entity);
+-    return $this->saveAlias($uri['path'], $alias, $language);
+-  }
+-
+-  /**
+-   * Make a page request and test for token generation.
+-   */
+-  function assertPageTokens($url, array $tokens, array $data = array(), array $options = array()) {
+-    if (empty($tokens)) {
+-      return TRUE;
+-    }
+-
+-    $token_page_tokens = array(
+-      'tokens' => $tokens,
+-      'data' => $data,
+-      'options' => $options,
+-    );
+-    variable_set('token_page_tokens', $token_page_tokens);
+-
+-    $options += array('url_options' => array());
+-    $this->drupalGet($url, $options['url_options']);
+-    $this->refreshVariables();
+-    $result = variable_get('token_page_tokens', array());
+-
+-    if (!isset($result['values']) || !is_array($result['values'])) {
+-      return $this->fail('Failed to generate tokens.');
+-    }
+-
+-    foreach ($tokens as $token => $expected) {
+-      if (!isset($expected)) {
+-        $this->assertTrue(!isset($result['values'][$token]) || $result['values'][$token] === $token, t("Token value for @token was not generated.", array('@token' => $token)));
+-      }
+-      elseif (!isset($result['values'][$token])) {
+-        $this->fail(t('Failed to generate token @token.', array('@token' => $token)));
+-      }
+-      else {
+-        $this->assertIdentical($result['values'][$token], (string) $expected, t("Token value for @token was '@actual', expected value '@expected'.", array('@token' => $token, '@actual' => $result['values'][$token], '@expected' => $expected)));
+-      }
+-    }
+-  }
+-}
+-
+-class TokenUnitTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Token unit tests',
+-      'description' => 'Test basic, low-level token functions.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  /**
+-   * Test token_get_invalid_tokens() and token_get_invalid_tokens_by_context().
+-   */
+-  public function testGetInvalidTokens() {
+-    $tests = array();
+-    $tests[] = array(
+-      'valid tokens' => array(
+-        '[node:title]',
+-        '[node:created:short]',
+-        '[node:created:custom:invalid]',
+-        '[node:created:custom:mm-YYYY]',
+-        '[site:name]',
+-        '[site:slogan]',
+-        '[current-date:short]',
+-        '[current-user:uid]',
+-        '[current-user:ip-address]',
+-      ),
+-      'invalid tokens' => array(
+-        '[node:title:invalid]',
+-        '[node:created:invalid]',
+-        '[node:created:short:invalid]',
+-        '[invalid:title]',
+-        '[site:invalid]',
+-        '[user:ip-address]',
+-        '[user:uid]',
+-        '[comment:cid]',
+-        // Deprecated tokens
+-        '[node:tnid]',
+-        '[node:type]',
+-        '[node:type-name]',
+-        '[date:short]',
+-      ),
+-      'types' => array('node'),
+-    );
+-    $tests[] = array(
+-      'valid tokens' => array(
+-        '[node:title]',
+-        '[node:created:short]',
+-        '[node:created:custom:invalid]',
+-        '[node:created:custom:mm-YYYY]',
+-        '[site:name]',
+-        '[site:slogan]',
+-        '[user:uid]',
+-        '[current-date:short]',
+-        '[current-user:uid]',
+-      ),
+-      'invalid tokens' => array(
+-        '[node:title:invalid]',
+-        '[node:created:invalid]',
+-        '[node:created:short:invalid]',
+-        '[invalid:title]',
+-        '[site:invalid]',
+-        '[user:ip-address]',
+-        '[comment:cid]',
+-        // Deprecated tokens
+-        '[node:tnid]',
+-        '[node:type]',
+-        '[node:type-name]',
+-      ),
+-      'types' => array('all'),
+-    );
+-
+-    foreach ($tests as $test) {
+-      $tokens = array_merge($test['valid tokens'], $test['invalid tokens']);
+-      shuffle($tokens);
+-
+-      $invalid_tokens = token_get_invalid_tokens_by_context(implode(' ', $tokens), $test['types']);
+-
+-      sort($invalid_tokens);
+-      sort($test['invalid tokens']);
+-      $this->assertEqual($invalid_tokens, $test['invalid tokens'], 'Invalid tokens detected properly: ' . implode(', ', $invalid_tokens));
+-    }
+-  }
+-}
+-
+-class TokenURLTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'URL token tests',
+-      'description' => 'Test the URL tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  public function setUp($modules = array()) {
+-    parent::setUp($modules);
+-    $this->saveAlias('node/1', 'first-node');
+-  }
+-
+-  function testURLTokens() {
+-    $tokens = array(
+-      'absolute' => 'http://example.com/first-node',
+-      'relative' => base_path() . 'first-node',
+-      'path' => 'first-node',
+-      'brief' => 'example.com/first-node',
+-      'args:value:0' => 'first-node',
+-      'args:value:1' => NULL,
+-      'args:value:N' => NULL,
+-      'unaliased' => 'http://example.com/node/1',
+-      'unaliased:relative' => base_path() . 'node/1',
+-      'unaliased:path' => 'node/1',
+-      'unaliased:brief' => 'example.com/node/1',
+-      'unaliased:args:value:0' => 'node',
+-      'unaliased:args:value:1' => '1',
+-      'unaliased:args:value:2' => NULL,
+-      // Deprecated tokens.
+-      'alias' => 'first-node',
+-    );
+-    $this->assertTokens('url', array('path' => 'node/1', 'options' => array('base_url' => 'http://example.com')), $tokens);
+-  }
+-}
+-
+-class TokenCommentTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Comment token tests',
+-      'description' => 'Test the comment tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  public function setUp($modules = array()) {
+-    $modules[] = 'comment';
+-    parent::setUp($modules);
+-  }
+-
+-  function testCommentTokens() {
+-    $node = $this->drupalCreateNode(array('comment' => COMMENT_NODE_OPEN));
+-
+-    $parent_comment = new stdClass;
+-    $parent_comment->nid = $node->nid;
+-    $parent_comment->pid = 0;
+-    $parent_comment->cid = NULL;
+-    $parent_comment->uid = 0;
+-    $parent_comment->name = 'anonymous user';
+-    $parent_comment->mail = 'anonymous@example.com';
+-    $parent_comment->subject = $this->randomName();
+-    $parent_comment->timestamp = mt_rand($node->created, REQUEST_TIME);
+-    $parent_comment->language = LANGUAGE_NONE;
+-    $parent_comment->body[LANGUAGE_NONE][0] = $this->randomName();
+-    comment_save($parent_comment);
+-
+-    $tokens = array(
+-      'url' => url('comment/' . $parent_comment->cid, array('fragment' => 'comment-' . $parent_comment->cid, 'absolute' => TRUE)),
+-      'url:absolute' => url('comment/' . $parent_comment->cid, array('fragment' => 'comment-' . $parent_comment->cid, 'absolute' => TRUE)),
+-      'url:relative' => url('comment/' . $parent_comment->cid, array('fragment' => 'comment-' . $parent_comment->cid, 'absolute' => FALSE)),
+-      'url:path' => 'comment/' . $parent_comment->cid,
+-      'parent:url:absolute' => NULL,
+-    );
+-    $this->assertTokens('comment', array('comment' => $parent_comment), $tokens);
+-
+-    $comment = new stdClass();
+-    $comment->nid = $node->nid;
+-    $comment->pid = $parent_comment->cid;
+-    $comment->cid = NULL;
+-    $comment->uid = 1;
+-    $comment->subject = $this->randomName();
+-    $comment->timestamp = mt_rand($parent_comment->created, REQUEST_TIME);
+-    $comment->language = LANGUAGE_NONE;
+-    $comment->body[LANGUAGE_NONE][0] = $this->randomName();
+-    comment_save($comment);
+-
+-    $tokens = array(
+-      'url' => url('comment/' . $comment->cid, array('fragment' => 'comment-' . $comment->cid, 'absolute' => TRUE)),
+-      'url:absolute' => url('comment/' . $comment->cid, array('fragment' => 'comment-' . $comment->cid, 'absolute' => TRUE)),
+-      'url:relative' => url('comment/' . $comment->cid, array('fragment' => 'comment-' . $comment->cid, 'absolute' => FALSE)),
+-      'url:path' => 'comment/' . $comment->cid,
+-      'parent:url:absolute' => url('comment/' . $parent_comment->cid, array('fragment' => 'comment-' . $parent_comment->cid, 'absolute' => TRUE)),
+-    );
+-    $this->assertTokens('comment', array('comment' => $comment), $tokens);
+-  }
+-}
+-
+-class TokenNodeTestCase extends TokenTestHelper {
+-  protected $profile = 'standard';
+-
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Node and content type token tests',
+-      'description' => 'Test the node and content type tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  function testNodeTokens() {
+-    $source_node = $this->drupalCreateNode(array('log' => $this->randomName(), 'path' => array('alias' => 'content/source-node')));
+-    $tokens = array(
+-      'source' => NULL,
+-      'source:nid' => NULL,
+-      'log' => $source_node->log,
+-      'url:path' => 'content/source-node',
+-      'url:absolute' => url("node/{$source_node->nid}", array('absolute' => TRUE)),
+-      'url:relative' => url("node/{$source_node->nid}", array('absolute' => FALSE)),
+-      'url:unaliased:path' => "node/{$source_node->nid}",
+-      'content-type' => 'Basic page',
+-      'content-type:name' => 'Basic page',
+-      'content-type:machine-name' => 'page',
+-      'content-type:description' => "Use <em>basic pages</em> for your static content, such as an 'About us' page.",
+-      'content-type:node-count' => 1,
+-      'content-type:edit-url' => url('admin/structure/types/manage/page', array('absolute' => TRUE)),
+-      // Deprecated tokens.
+-      'tnid' => 0,
+-      'type' => 'page',
+-      'type-name' => 'Basic page',
+-      'url:alias' => 'content/source-node',
+-    );
+-    $this->assertTokens('node', array('node' => $source_node), $tokens);
+-
+-    $translated_node = $this->drupalCreateNode(array('tnid' => $source_node->nid, 'type' => 'article'));
+-    $tokens = array(
+-      'source' => $source_node->title,
+-      'source:nid' => $source_node->nid,
+-      'log' => '',
+-      'url:path' => "node/{$translated_node->nid}",
+-      'url:absolute' => url("node/{$translated_node->nid}", array('absolute' => TRUE)),
+-      'url:relative' => url("node/{$translated_node->nid}", array('absolute' => FALSE)),
+-      'url:unaliased:path' => "node/{$translated_node->nid}",
+-      'content-type' => 'Article',
+-      'content-type:name' => 'Article',
+-      'content-type:machine-name' => 'article',
+-      'content-type:description' => "Use <em>articles</em> for time-sensitive content like news, press releases or blog posts.",
+-      'content-type:node-count' => 1,
+-      'content-type:edit-url' => url('admin/structure/types/manage/article', array('absolute' => TRUE)),
+-      // Deprecated tokens.
+-      'type' => 'article',
+-      'type-name' => 'Article',
+-      'tnid' => $source_node->nid,
+-      'url:alias' => "node/{$translated_node->nid}",
+-    );
+-    $this->assertTokens('node', array('node' => $translated_node), $tokens);
+-  }
+-}
+-
+-class TokenMenuTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Menu link and menu token tests',
+-      'description' => 'Test the menu tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  public function setUp($modules = array()) {
+-    $modules[] = 'menu';
+-    parent::setUp($modules);
+-  }
+-
+-  function testMenuTokens() {
+-    // Add a root link.
+-    $root_link = array(
+-      'link_path' => 'root',
+-      'link_title' => 'Root link',
+-      'menu_name' => 'main-menu',
+-    );
+-    menu_link_save($root_link);
+-
+-    // Add another link with the root link as the parent
+-    $parent_link = array(
+-      'link_path' => 'root/parent',
+-      'link_title' => 'Parent link',
+-      'menu_name' => 'main-menu',
+-      'plid' => $root_link['mlid'],
+-    );
+-    menu_link_save($parent_link);
+-
+-    // Test menu link tokens.
+-    $tokens = array(
+-      'mlid' => $parent_link['mlid'],
+-      'title' => 'Parent link',
+-      'menu' => 'Main menu',
+-      'menu:name' => 'Main menu',
+-      'menu:machine-name' => 'main-menu',
+-      'menu:description' => 'The <em>Main</em> menu is used on many sites to show the major sections of the site, often in a top navigation bar.',
+-      'menu:menu-link-count' => 2,
+-      'menu:edit-url' => url("admin/structure/menu/manage/main-menu", array('absolute' => TRUE)),
+-      'url' => url('root/parent', array('absolute' => TRUE)),
+-      'url:absolute' => url('root/parent', array('absolute' => TRUE)),
+-      'url:relative' => url('root/parent', array('absolute' => FALSE)),
+-      'url:path' => 'root/parent',
+-      'url:alias' => 'root/parent',
+-      'edit-url' => url("admin/structure/menu/item/{$parent_link['mlid']}/edit", array('absolute' => TRUE)),
+-      'parent' => 'Root link',
+-      'parent:mlid' => $root_link['mlid'],
+-      'parent:title' => 'Root link',
+-      'parent:menu' => 'Main menu',
+-      'parent:parent' => NULL,
+-      'parents' => 'Root link',
+-      'parents:count' => 1,
+-      'parents:keys' => $root_link['mlid'],
+-      'root' => 'Root link',
+-      'root:mlid' => $root_link['mlid'],
+-      'root:parent' => NULL,
+-      'root:root' => NULL,
+-    );
+-    $this->assertTokens('menu-link', array('menu-link' => $parent_link), $tokens);
+-
+-    // Add a node menu link
+-    $node_link = array(
+-      'enabled' => TRUE,
+-      'link_title' => 'Node link',
+-      'plid' => $parent_link['mlid'],
+-      'customized' => 0,
+-      'description' => '',
+-    );
+-    $node = $this->drupalCreateNode(array('menu' => $node_link));
+-
+-    // Test [node:menu] tokens.
+-    $tokens = array(
+-      'menu-link' => 'Node link',
+-      'menu-link:mlid' => $node->menu['mlid'],
+-      'menu-link:title' => 'Node link',
+-      'menu-link:menu' => 'Main menu',
+-      'menu-link:url' => url('node/' . $node->nid, array('absolute' => TRUE)),
+-      'menu-link:url:path' => 'node/' . $node->nid,
+-      'menu-link:edit-url' => url("admin/structure/menu/item/{$node->menu['mlid']}/edit", array('absolute' => TRUE)),
+-      'menu-link:parent' => 'Parent link',
+-      'menu-link:parent:mlid' => $node->menu['plid'],
+-      'menu-link:parent:mlid' => $parent_link['mlid'],
+-      'menu-link:parents' => 'Root link, Parent link',
+-      'menu-link:parents:count' => 2,
+-      'menu-link:parents:keys' => $root_link['mlid'] . ', ' . $parent_link['mlid'],
+-      'menu-link:root' => 'Root link',
+-      'menu-link:root:mlid' => $root_link['mlid'],
+-    );
+-    $this->assertTokens('node', array('node' => $node), $tokens);
+-
+-    // Reload the node which will not have $node->menu defined and re-test.
+-    $loaded_node = node_load($node->nid);
+-    $this->assertTokens('node', array('node' => $loaded_node), $tokens);
+-
+-    // Regression test for http://drupal.org/node/1317926 to ensure the
+-    // original node object is not changed when calling menu_node_prepare().
+-    $this->assertTrue(!isset($loaded_node->menu), t('The $node->menu property was not modified during token replacement.'), 'Regression');
+-  }
+-}
+-
+-class TokenTaxonomyTestCase extends TokenTestHelper {
+-  protected $vocab;
+-
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Taxonomy and vocabulary token tests',
+-      'description' => 'Test the taxonomy tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  public function setUp($modules = array()) {
+-    $modules[] = 'taxonomy';
+-    parent::setUp($modules);
+-
+-    // Create the default tags vocabulary.
+-    $vocabulary = (object) array(
+-      'name' => 'Tags',
+-      'machine_name' => 'tags',
+-    );
+-    taxonomy_vocabulary_save($vocabulary);
+-    $this->vocab = $vocabulary;
+-  }
+-
+-  /**
+-   * Test the additional taxonomy term tokens.
+-   */
+-  function testTaxonomyTokens() {
+-    $root_term = $this->addTerm($this->vocab, array('name' => 'Root term', 'path' => array('alias' => 'root-term')));
+-    $tokens = array(
+-      'url' => url("taxonomy/term/{$root_term->tid}", array('absolute' => TRUE)),
+-      'url:absolute' => url("taxonomy/term/{$root_term->tid}", array('absolute' => TRUE)),
+-      'url:relative' => url("taxonomy/term/{$root_term->tid}", array('absolute' => FALSE)),
+-      'url:path' => 'root-term',
+-      'url:unaliased:path' => "taxonomy/term/{$root_term->tid}",
+-      'edit-url' => url("taxonomy/term/{$root_term->tid}/edit", array('absolute' => TRUE)),
+-      'parents' => NULL,
+-      'parents:count' => NULL,
+-      'parents:keys' => NULL,
+-      'root' => NULL,
+-      // Deprecated tokens
+-      'url:alias' => 'root-term',
+-    );
+-    $this->assertTokens('term', array('term' => $root_term), $tokens);
+-
+-    $parent_term = $this->addTerm($this->vocab, array('name' => 'Parent term', 'parent' => $root_term->tid));
+-    $tokens = array(
+-      'url' => url("taxonomy/term/{$parent_term->tid}", array('absolute' => TRUE)),
+-      'url:absolute' => url("taxonomy/term/{$parent_term->tid}", array('absolute' => TRUE)),
+-      'url:relative' => url("taxonomy/term/{$parent_term->tid}", array('absolute' => FALSE)),
+-      'url:path' => "taxonomy/term/{$parent_term->tid}",
+-      'url:unaliased:path' => "taxonomy/term/{$parent_term->tid}",
+-      'edit-url' => url("taxonomy/term/{$parent_term->tid}/edit", array('absolute' => TRUE)),
+-      'parents' => 'Root term',
+-      'parents:count' => 1,
+-      'parents:keys' => $root_term->tid,
+-      'root' => check_plain($root_term->name),
+-      'root:tid' => $root_term->tid,
+-      // Deprecated tokens
+-      'url:alias' => "taxonomy/term/{$parent_term->tid}",
+-    );
+-    $this->assertTokens('term', array('term' => $parent_term), $tokens);
+-
+-    $term = $this->addTerm($this->vocab, array('name' => 'Test term', 'parent' => $parent_term->tid));
+-    $tokens = array(
+-      'parents' => 'Root term, Parent term',
+-      'parents:count' => 2,
+-      'parents:keys' => implode(', ', array($root_term->tid, $parent_term->tid)),
+-    );
+-    $this->assertTokens('term', array('term' => $term), $tokens);
+-  }
+-
+-  /**
+-   * Test the additional vocabulary tokens.
+-   */
+-  function testVocabularyTokens() {
+-    $vocabulary = $this->vocab;
+-    $tokens = array(
+-      'machine-name' => 'tags',
+-      'edit-url' => url("admin/structure/taxonomy/{$vocabulary->machine_name}/edit", array('absolute' => TRUE)),
+-    );
+-    $this->assertTokens('vocabulary', array('vocabulary' => $vocabulary), $tokens);
+-  }
+-
+-  function addVocabulary(array $vocabulary = array()) {
+-    $vocabulary += array(
+-      'name' => drupal_strtolower($this->randomName(5)),
+-      'nodes' => array('article' => 'article'),
+-    );
+-    $vocabulary = (object) $vocabulary;
+-    taxonomy_vocabulary_save($vocabulary);
+-    return $vocabulary;
+-  }
+-
+-  function addTerm(stdClass $vocabulary, array $term = array()) {
+-    $term += array(
+-      'name' => drupal_strtolower($this->randomName(5)),
+-      'vid' => $vocabulary->vid,
+-    );
+-    $term = (object) $term;
+-    taxonomy_term_save($term);
+-    return $term;
+-  }
+-}
+-
+-class TokenUserTestCase extends TokenTestHelper {
+-  protected $account = NULL;
+-
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'User token tests',
+-      'description' => 'Test the user tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  public function setUp($modules = array()) {
+-    parent::setUp($modules);
+-
+-    // Enable user pictures.
+-    variable_set('user_pictures', 1);
+-    variable_set('user_picture_file_size', '');
+-
+-    // Set up the pictures directory.
+-    $picture_path = file_default_scheme() . '://' . variable_get('user_picture_path', 'pictures');
+-    if (!file_prepare_directory($picture_path, FILE_CREATE_DIRECTORY)) {
+-      $this->fail('Could not create directory ' . $picture_path . '.');
+-    }
+-
+-    $this->account = $this->drupalCreateUser(array('administer users'));
+-    $this->drupalLogin($this->account);
+-  }
+-
+-  function testUserTokens() {
+-    // Add a user picture to the account.
+-    $image = current($this->drupalGetTestFiles('image'));
+-    $edit = array('files[picture_upload]' => drupal_realpath($image->uri));
+-    $this->drupalPost('user/' . $this->account->uid . '/edit', $edit, t('Save'));
+-
+-    // Load actual user data from database.
+-    $this->account = user_load($this->account->uid, TRUE);
+-    $this->assertTrue(!empty($this->account->picture->fid), 'User picture uploaded.');
+-
+-    $user_tokens = array(
+-      'picture' => theme('user_picture', array('account' => $this->account)),
+-      'picture:fid' => $this->account->picture->fid,
+-      'picture:size-raw' => 125,
+-      'ip-address' => NULL,
+-      'roles' => implode(', ', $this->account->roles),
+-      'roles:keys' => implode(', ', array_keys($this->account->roles)),
+-    );
+-    $this->assertTokens('user', array('user' => $this->account), $user_tokens);
+-
+-    $edit = array('user_pictures' => FALSE);
+-    $this->drupalPost('admin/config/people/accounts', $edit, 'Save configuration');
+-    $this->assertText('The configuration options have been saved.');
+-
+-    // Remove the simpletest-created user role.
+-    user_role_delete(end($this->account->roles));
+-    $this->account = user_load($this->account->uid, TRUE);
+-
+-    $user_tokens = array(
+-      'picture' => NULL,
+-      'picture:fid' => NULL,
+-      'ip-address' => NULL,
+-      'roles' => 'authenticated user',
+-      'roles:keys' => (string) DRUPAL_AUTHENTICATED_RID,
+-    );
+-    $this->assertTokens('user', array('user' => $this->account), $user_tokens);
+-
+-    // The ip address token should work for the current user token type.
+-    $tokens = array(
+-      'ip-address' => ip_address(),
+-    );
+-    $this->assertTokens('current-user', array(), $tokens);
+-
+-    $anonymous = drupal_anonymous_user();
+-    // Mess with the role array to ensure we still get consistent output.
+-    $anonymous->roles[DRUPAL_ANONYMOUS_RID] = DRUPAL_ANONYMOUS_RID;
+-    $tokens = array(
+-      'roles' => 'anonymous user',
+-      'roles:keys' => (string) DRUPAL_ANONYMOUS_RID,
+-    );
+-    $this->assertTokens('user', array('user' => $anonymous), $tokens);
+-  }
+-}
+-
+-class TokenEntityTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Entity token tests',
+-      'description' => 'Test the entity tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  public function setUp($modules = array()) {
+-    $modules[] = 'taxonomy';
+-    parent::setUp($modules);
+-
+-    // Create the default tags vocabulary.
+-    $vocabulary = (object) array(
+-      'name' => 'Tags',
+-      'machine_name' => 'tags',
+-    );
+-    taxonomy_vocabulary_save($vocabulary);
+-    $this->vocab = $vocabulary;
+-  }
+-
+-  function testEntityMapping() {
+-    $this->assertIdentical(token_get_entity_mapping('token', 'node'), 'node');
+-    $this->assertIdentical(token_get_entity_mapping('token', 'term'), 'taxonomy_term');
+-    $this->assertIdentical(token_get_entity_mapping('token', 'vocabulary'), 'taxonomy_vocabulary');
+-    $this->assertIdentical(token_get_entity_mapping('token', 'invalid'), FALSE);
+-    $this->assertIdentical(token_get_entity_mapping('token', 'invalid', TRUE), 'invalid');
+-    $this->assertIdentical(token_get_entity_mapping('entity', 'node'), 'node');
+-    $this->assertIdentical(token_get_entity_mapping('entity', 'taxonomy_term'), 'term');
+-    $this->assertIdentical(token_get_entity_mapping('entity', 'taxonomy_vocabulary'), 'vocabulary');
+-    $this->assertIdentical(token_get_entity_mapping('entity', 'invalid'), FALSE);
+-    $this->assertIdentical(token_get_entity_mapping('entity', 'invalid', TRUE), 'invalid');
+-
+-    // Test that when we send the mis-matched entity type into token_replace()
+-    // that we still get the tokens replaced.
+-    $vocabulary = taxonomy_vocabulary_machine_name_load('tags');
+-    $term = $this->addTerm($vocabulary);
+-    $this->assertIdentical(token_replace('[vocabulary:name]', array('taxonomy_vocabulary' => $vocabulary)), $vocabulary->name);
+-    $this->assertIdentical(token_replace('[term:name][term:vocabulary:name]', array('taxonomy_term' => $term)), $term->name . $vocabulary->name);
+-  }
+-
+-  function addTerm(stdClass $vocabulary, array $term = array()) {
+-    $term += array(
+-      'name' => drupal_strtolower($this->randomName(5)),
+-      'vid' => $vocabulary->vid,
+-    );
+-    $term = (object) $term;
+-    taxonomy_term_save($term);
+-    return $term;
+-  }
+-
+-  /**
+-   * Test the [entity:original:*] tokens.
+-   */
+-  function testEntityOriginal() {
+-    $node = $this->drupalCreateNode(array('title' => 'Original title'));
+-
+-    $tokens = array(
+-      'nid' => $node->nid,
+-      'title' => 'Original title',
+-      'original' => NULL,
+-      'original:nid' => NULL,
+-    );
+-    $this->assertTokens('node', array('node' => $node), $tokens);
+-
+-    // Emulate the original entity property that would be available from
+-    // node_save() and change the title for the node.
+-    $node->original = entity_load_unchanged('node', $node->nid);
+-    $node->title = 'New title';
+-
+-    $tokens = array(
+-      'nid' => $node->nid,
+-      'title' => 'New title',
+-      'original' => 'Original title',
+-      'original:nid' => $node->nid,
+-    );
+-    $this->assertTokens('node', array('node' => $node), $tokens);
+-  }
+-}
+-
+-/**
+- * Test the profile tokens.
+- */
+-class TokenProfileTestCase extends TokenTestHelper {
+-  private $account;
+-
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Profile token tests',
+-      'description' => 'Test the profile tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  public function setUp($modules = array()) {
+-    $modules[] = 'profile';
+-    parent::setUp($modules);
+-    $this->account = $this->drupalCreateUser(array('administer users'));
+-    $this->drupalLogin($this->account);
+-  }
+-
+-  /**
+-   * Test the profile tokens.
+-   */
+-  function testProfileTokens() {
+-    $field_types = _profile_field_types();
+-    foreach (array_keys($field_types) as $field_type) {
+-      $field = array();
+-      switch ($field_type) {
+-        case 'checkbox':
+-          $field['title'] = 'This is a checkbox';
+-          break;
+-        case 'selection':
+-          $field['options'] = implode("\n", array('Red', 'Blue', 'Green'));
+-          break;
+-      }
+-      $this->addProfileField($field_type, $field);
+-    }
+-
+-    // Submit the profile fields for the user.
+-    $edit = array(
+-      'profile_textfield' => 'This is a text field',
+-      'profile_textarea' => "First paragraph.\n\nSecond paragraph.",
+-      'profile_checkbox' => TRUE,
+-      'profile_selection' => 'Red',
+-      'profile_list' => ' Drupal ,  Joomla ',
+-      'profile_url' => 'http://www.example.com/',
+-      'profile_date[month]' => 5,
+-      'profile_date[day]' => 20,
+-      'profile_date[year]' => 1984,
+-    );
+-    $this->drupalPost("user/{$this->account->uid}/edit/SimpleTest", $edit, 'Save');
+-    $account = user_load($this->account->uid, TRUE);
+-
+-    // Test the profile token values.
+-    $tokens = array(
+-      'profile-textfield' => 'This is a text field',
+-      'profile-textarea' => "<p>First paragraph.</p>\n<p>Second paragraph.</p>\n",
+-      'profile-checkbox' => 'This is a checkbox',
+-      'profile-selection' => 'Red',
+-      'profile-list' => 'Drupal, Joomla',
+-      'profile-url' => 'http://www.example.com/',
+-      'profile-date' => format_date(453859200, 'medium', '', NULL),
+-      'profile-date:raw' => '453859200',
+-      'profile-date:custom:Y' => '1984',
+-    );
+-    $this->assertTokens('user', array('user' => $account), $tokens);
+-
+-    // 'Un-select' the checkbox and select profile fields.
+-    $edit = array(
+-      'profile_checkbox' => FALSE,
+-      'profile_selection' => '0',
+-    );
+-    $this->drupalPost("user/{$this->account->uid}/edit/SimpleTest", $edit, 'Save');
+-    $account = user_load($this->account->uid, TRUE);
+-
+-    // The checkbox and select profile tokens should no longer return a value.
+-    $tokens = array(
+-      'profile-checkbox' => NULL,
+-      'profile-selection' => NULL,
+-    );
+-    $this->assertTokens('user', array('user' => $account), $tokens);
+-  }
+-
+-  /**
+-   * Add a profile field.
+-   *
+-   * @param $type
+-   *   The profile field type.
+-   * @param $field
+-   *   (optional) An array of the profile field properties.
+-   *
+-   * @return
+-   *   The saved profile field record object.
+-   *
+-   * @see drupal_form_submit()
+-   */
+-  function addProfileField($type, array $field = array()) {
+-    $field += array(
+-      'type' => $type,
+-      'category' => 'SimpleTest',
+-      'title' => $this->randomName(8),
+-      'name' => 'profile_' . $type,
+-      'explanation' => $this->randomName(50),
+-      'autocomplete' => 0,
+-      'required' => 0,
+-      'register' => 0,
+-    );
+-    drupal_write_record('profile_field', $field);
+-
+-    // Verify the profile field was created successfully.
+-    $saved_field = db_query("SELECT * FROM {profile_field} WHERE type = :type AND name = :name", array(':type' => $type, ':name' => $field['name']))->fetchObject();
+-    if (empty($saved_field)) {
+-      $this->fail(t('Failed to create profile field @name.', array('@name' => $saved_field->name)));
+-    }
+-
+-    return $saved_field;
+-  }
+-}
+-
+-/**
+- * Test the current page tokens.
+- */
+-class TokenCurrentPageTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Current page token tests',
+-      'description' => 'Test the [current-page:*] tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  function testCurrentPageTokens() {
+-    $tokens = array(
+-      '[current-page:title]' => t('Welcome to @site-name', array('@site-name' => variable_get('site_name', 'Drupal'))),
+-      '[current-page:url]' => url('node', array('absolute' => TRUE)),
+-      '[current-page:url:absolute]' => url('node', array('absolute' => TRUE)),
+-      '[current-page:url:relative]' => url('node', array('absolute' => FALSE)),
+-      '[current-page:url:path]' => 'node',
+-      '[current-page:url:args:value:0]' => 'node',
+-      '[current-page:url:args:value:1]' => NULL,
+-      '[current-page:url:unaliased]' => url('node', array('absolute' => TRUE, 'alias' => TRUE)),
+-      '[current-page:page-number]' => 1,
+-      '[current-page:query:foo]' => NULL,
+-      '[current-page:query:bar]' => NULL,
+-      '[current-page:query:q]' => 'node',
+-      // Deprecated tokens
+-      '[current-page:arg:0]' => 'node',
+-      '[current-page:arg:1]' => NULL,
+-    );
+-    $this->assertPageTokens('', $tokens);
+-
+-    $node = $this->drupalCreateNode(array('title' => 'Node title', 'path' => array('alias' => 'node-alias')));
+-    $tokens = array(
+-      '[current-page:title]' => 'Node title',
+-      '[current-page:url]' => url("node/{$node->nid}", array('absolute' => TRUE)),
+-      '[current-page:url:absolute]' => url("node/{$node->nid}", array('absolute' => TRUE)),
+-      '[current-page:url:relative]' => url("node/{$node->nid}", array('absolute' => FALSE)),
+-      '[current-page:url:alias]' => 'node-alias',
+-      '[current-page:url:args:value:0]' => 'node-alias',
+-      '[current-page:url:args:value:1]' => NULL,
+-      '[current-page:url:unaliased]' => url("node/{$node->nid}", array('absolute' => TRUE, 'alias' => TRUE)),
+-      '[current-page:url:unaliased:args:value:0]' => 'node',
+-      '[current-page:url:unaliased:args:value:1]' => $node->nid,
+-      '[current-page:url:unaliased:args:value:2]' => NULL,
+-      '[current-page:page-number]' => 1,
+-      '[current-page:query:foo]' => 'bar',
+-      '[current-page:query:bar]' => NULL,
+-      '[current-page:query:q]' => 'node/1',
+-      // Deprecated tokens
+-      '[current-page:arg:0]' => 'node',
+-      '[current-page:arg:1]' => 1,
+-      '[current-page:arg:2]' => NULL,
+-    );
+-    $this->assertPageTokens("node/{$node->nid}", $tokens, array(), array('url_options' => array('query' => array('foo' => 'bar'))));
+-  }
+-}
+-
+-class TokenArrayTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Array token tests',
+-      'description' => 'Test the array tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  function testArrayTokens() {
+-    // Test a simple array.
+-    $array = array(0 => 'a', 1 => 'b', 2 => 'c', 4 => 'd');
+-    $tokens = array(
+-      'first' => 'a',
+-      'last' => 'd',
+-      'value:0' => 'a',
+-      'value:2' => 'c',
+-      'count' => 4,
+-      'keys' => '0, 1, 2, 4',
+-      'keys:value:3' => '4',
+-      'keys:join' => '0124',
+-      'reversed' => 'd, c, b, a',
+-      'reversed:keys' => '4, 2, 1, 0',
+-      'join:/' => 'a/b/c/d',
+-      'join' => 'abcd',
+-      'join:, ' => 'a, b, c, d',
+-      'join: ' => 'a b c d',
+-    );
+-    $this->assertTokens('array', array('array' => $array), $tokens);
+-
+-    // Test a mixed simple and render array.
+-    // 2 => c, 0 => a, 4 => d, 1 => b
+-    $array = array(
+-      '#property' => 'value',
+-      0 => 'a',
+-      1 => array('#markup' => 'b', '#weight' => 0.01),
+-      2 => array('#markup' => 'c', '#weight' => -10),
+-      4 => array('#markup' => 'd', '#weight' => 0),
+-    );
+-    $tokens = array(
+-      'first' => 'c',
+-      'last' => 'b',
+-      'value:0' => 'a',
+-      'value:2' => 'c',
+-      'count' => 4,
+-      'keys' => '2, 0, 4, 1',
+-      'keys:value:3' => '1',
+-      'keys:join' => '2041',
+-      'reversed' => 'b, d, a, c',
+-      'reversed:keys' => '1, 4, 0, 2',
+-      'join:/' => 'c/a/d/b',
+-      'join' => 'cadb',
+-      'join:, ' => 'c, a, d, b',
+-      'join: ' => 'c a d b',
+-    );
+-    $this->assertTokens('array', array('array' => $array), $tokens);
+-  }
+-}
+-
+-class TokenRandomTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Random token tests',
+-      'description' => 'Test the random tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  function testRandomTokens() {
+-    $tokens = array(
+-      'number' => '[0-9]{1,}',
+-      'hash:md5' => '[0-9a-f]{32}',
+-      'hash:sha1' => '[0-9a-f]{40}',
+-      'hash:sha256' => '[0-9a-f]{64}',
+-      'hash:invalid-algo' => NULL,
+-    );
+-
+-    $first_set = $this->assertTokens('random', array(), $tokens, array('regex' => TRUE));
+-    $second_set = $this->assertTokens('random', array(), $tokens, array('regex' => TRUE));
+-    foreach ($first_set as $token => $value) {
+-      $this->assertNotIdentical($first_set[$token], $second_set[$token]);
+-    }
+-  }
+-}
+-
+-/**
+- * @todo Remove when http://drupal.org/node/1173706 is fixed.
+- */
+-class TokenDateTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Date token tests',
+-      'description' => 'Test the date tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  function testDateTokens() {
+-    $tokens = array(
+-      'token_test' => '1984',
+-      'invalid_format' => NULL,
+-    );
+-
+-    $this->assertTokens('date', array('date' => 453859200), $tokens);
+-  }
+-}
+-
+-class TokenFileTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'File token tests',
+-      'description' => 'Test the file tokens.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  function testFileTokens() {
+-    // Create a test file object.
+-    $file = new stdClass();
+-    $file->fid = 1;
+-    $file->filename = 'test.png';
+-    $file->filesize = 100;
+-    $file->uri = 'public://images/test.png';
+-    $file->filemime = 'image/png';
+-
+-    $tokens = array(
+-      'basename' => 'test.png',
+-      'extension' => 'png',
+-      'size-raw' => 100,
+-    );
+-    $this->assertTokens('file', array('file' => $file), $tokens);
+-
+-    // Test a file with no extension and a fake name.
+-    $file->filename = 'Test PNG image';
+-    $file->uri = 'public://images/test';
+-
+-    $tokens = array(
+-      'basename' => 'test',
+-      'extension' => '',
+-      'size-raw' => 100,
+-    );
+-    $this->assertTokens('file', array('file' => $file), $tokens);
+-  }
+-}
+-
+-class TokenBlockTestCase extends TokenTestHelper {
+-  public static function getInfo() {
+-    return array(
+-      'name' => 'Block token tests',
+-      'description' => 'Test the block title token replacement.',
+-      'group' => 'Token',
+-    );
+-  }
+-
+-  public function setUp($modules = array()) {
+-    $modules[] = 'block';
+-    parent::setUp($modules);
+-
+-    $this->admin_user = $this->drupalCreateUser(array('access content', 'administer blocks'));
+-    $this->drupalLogin($this->admin_user);
+-  }
+-
+-  public function testBlockTitleTokens() {
+-    $edit['title'] = '[user:name]';
+-    $edit['info'] = 'Test token title block';
+-    $edit['body[value]'] = 'This is the test token title block.';
+-    $this->drupalPost('admin/structure/block/add', $edit, 'Save block');
+-    // Ensure token validation is working on the block.
+-    $this->assertText('The Block title is using the following invalid tokens: [user:name].');
+-
+-    // Create the block for real now with a valid title.
+-    $edit['title'] = '[current-page:title] block title';
+-    $edit['regions[bartik]'] = 'sidebar_first';
+-    $this->drupalPost(NULL, $edit, 'Save block');
+-
+-    $this->drupalGet('node');
+-    $this->assertText('Welcome to ' . variable_get('site_name', 'Drupal') . ' block title');
+-
+-    // Ensure that tokens are not double-escaped when output as a block title.
+-    $node = $this->drupalCreateNode(array('title' => "Site's first node"));
+-    $this->drupalGet('node/' . $node->nid);
+-    // The apostraphe should only be escaped once via check_plain().
+-    $this->assertRaw("Site&#039;s first node block title");
+-  }
+-}
+diff --git a/token.tokens.inc b/token.tokens.inc
+index e0c0b5e..dc8f3dc 100644
+--- a/token.tokens.inc
++++ b/token.tokens.inc
+@@ -4,6 +4,12 @@
+  * @file
+  * Token callbacks for the token module.
+  */
++use Drupal\Component\Utility\Crypt;
++use Drupal\Component\Utility\String;
++use Drupal\Core\Entity\EntityInterface;
++use Drupal\Core\Render\Element;
++use Drupal\field\Field;
++use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+ 
+ /**
+  * Implements hook_token_info_alter().
+@@ -23,7 +29,9 @@ function token_token_info_alter(&$info) {
+ 
+   // The [file:size] may not always return in kilobytes.
+   // @todo Remove when http://drupal.org/node/1193044 is fixed.
+-  $info['tokens']['file']['size']['description'] = t('The size of the file.');
++  if (!empty($info['tokens']['file']['size'])) {
++    $info['tokens']['file']['size']['description'] = t('The size of the file.');
++  }
+ 
+   // Remove deprecated tokens from being listed.
+   unset($info['tokens']['node']['tnid']);
+@@ -31,33 +39,36 @@ function token_token_info_alter(&$info) {
+   unset($info['tokens']['node']['type-name']);
+ 
+   // Support 'url' type tokens for core tokens.
+-  if (isset($info['tokens']['comment']['url']) && module_exists('comment')) {
++  if (isset($info['tokens']['comment']['url']) && \Drupal::moduleHandler()->moduleExists('comment')) {
+     $info['tokens']['comment']['url']['type'] = 'url';
+   }
+-  $info['tokens']['node']['url']['type'] = 'url';
+-  if (isset($info['tokens']['term']['url']) && module_exists('taxonomy')) {
++  if (isset($info['tokens']['node']['url']) && \Drupal::moduleHandler()->moduleExists('node')) {
++    $info['tokens']['node']['url']['type'] = 'url';
++  }
++  if (isset($info['tokens']['term']['url']) && \Drupal::moduleHandler()->moduleExists('taxonomy')) {
+     $info['tokens']['term']['url']['type'] = 'url';
+   }
+   $info['tokens']['user']['url']['type'] = 'url';
+ 
+   // Add [token:url] tokens for any URI-able entities.
+-  $entities = entity_get_info();
++  $entities = \Drupal::entityManager()->getDefinitions();
+   foreach ($entities as $entity => $entity_info) {
+-    if (!isset($entity_info['token type'])) {
++    /* @var \Drupal\Core\Entity\EntityType $entity_info */
++    if (!$entity_info->get('token type')) {
+       continue;
+     }
+ 
+-    $token_type = $entity_info['token type'];
++    $token_type = $entity_info->get('token type');
+     if (!isset($info['types'][$token_type]) || !isset($info['tokens'][$token_type])) {
+       continue;
+     }
+ 
+     // Add [entity:url] tokens if they do not already exist.
+     // @todo Support entity:label
+-    if (!isset($info['tokens'][$token_type]['url']) && !empty($entity_info['uri callback'])) {
++    if (!isset($info['tokens'][$token_type]['url'])) {
+       $info['tokens'][$token_type]['url'] = array(
+         'name' => t('URL'),
+-        'description' => t('The URL of the @entity.', array('@entity' => drupal_strtolower($entity_info['label']))),
++        'description' => t('The URL of the @entity.', array('@entity' => drupal_strtolower($entity_info->getLabel()))),
+         'module' => 'token',
+         'type' => 'url',
+       );
+@@ -66,8 +77,8 @@ function token_token_info_alter(&$info) {
+     // Add [entity:original] tokens if they do not already exist.
+     if (!isset($info['tokens'][$token_type]['original'])) {
+       $info['tokens'][$token_type]['original'] = array(
+-        'name' => t('Original @entity', array('@entity' => drupal_strtolower($entity_info['label']))),
+-        'description' => t('The original @entity data if the @entity is being updated or saved.', array('@entity' => drupal_strtolower($entity_info['label']))),
++        'name' => t('Original @entity', array('@entity' => drupal_strtolower($entity_info->getLabel()))),
++        'description' => t('The original @entity data if the @entity is being updated or saved.', array('@entity' => drupal_strtolower($entity_info->getLabel()))),
+         'module' => 'token',
+         'type' => $token_type,
+       );
+@@ -76,11 +87,12 @@ function token_token_info_alter(&$info) {
+ 
+   // Add support for custom date formats.
+   // @todo Remove when http://drupal.org/node/1173706 is fixed.
+-  $date_format_types = system_get_date_types();
++  $date_format_types = \Drupal::entityManager()->getStorageController('date_format')->loadMultiple();
+   foreach ($date_format_types as $date_format_type => $date_format_type_info) {
++    /* @var \Drupal\system\Entity\DateFormat $date_format_type_info */
+     if (!isset($info['tokens']['date'][$date_format_type])) {
+       $info['tokens']['date'][$date_format_type] = array(
+-        'name' => check_plain($date_format_type_info['title']),
++        'name' => $date_format_type_info->label(),
+         'description' => t("A date in '@type' format. (%date)", array('@type' => $date_format_type, '%date' => format_date(REQUEST_TIME, $date_format_type))),
+         'module' => 'token',
+       );
+@@ -137,7 +149,7 @@ function token_token_info() {
+   );
+ 
+   // Taxonomy term and vocabulary tokens.
+-  if (module_exists('taxonomy')) {
++  if (\Drupal::moduleHandler()->moduleExists('taxonomy')) {
+     $info['tokens']['term']['edit-url'] = array(
+       'name' => t('Edit URL'),
+       'description' => t("The URL of the taxonomy term's edit page."),
+@@ -193,13 +205,11 @@ function token_token_info() {
+     'restricted' => TRUE,
+     // 'type' => 'url',
+   );
+-  if (variable_get('user_pictures', 0)) {
+-    $info['tokens']['user']['picture'] = array(
+-      'name' => t('Picture'),
+-      'description' => t('The picture of the user.'),
+-      'type' => 'file',
+-    );
+-  }
++  $info['tokens']['user']['picture'] = array(
++    'name' => t('Picture'),
++    'description' => t('The picture of the user.'),
++    'type' => 'file',
++  );
+   $info['tokens']['user']['roles'] = array(
+     'name' => t('Roles'),
+     'description' => t('The user roles associated with the user account.'),
+@@ -383,7 +393,7 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+     $date = !empty($data['date']) ? $data['date'] : REQUEST_TIME;
+ 
+     // @todo Remove when http://drupal.org/node/1173706 is fixed.
+-    $date_format_types = system_get_date_types();
++    $date_format_types = \Drupal::entityManager()->getStorageController('date_format')->loadMultiple();
+     foreach ($tokens as $name => $original) {
+       if (isset($date_format_types[$name]) && _token_module('date', $name) == 'token') {
+         $replacements[$original] = format_date($date, $name, '', NULL, $language_code);
+@@ -394,50 +404,52 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+   // Current date tokens.
+   // @todo Remove when http://drupal.org/node/943028 is fixed.
+   if ($type == 'current-date') {
+-    $replacements += token_generate('date', $tokens, array('date' => REQUEST_TIME), $options);
++    $replacements += \Drupal::token()->generate('date', $tokens, array('date' => REQUEST_TIME), $options);
+   }
+ 
+   // Comment tokens.
+   if ($type == 'comment' && !empty($data['comment'])) {
++    /* @var \Drupal\comment\CommentInterface $comment */
+     $comment = $data['comment'];
+ 
+     // Chained token relationships.
+-    if (($url_tokens = token_find_with_prefix($tokens, 'url'))) {
+-      $replacements += token_generate('url', $url_tokens, entity_uri('comment', $comment), $options);
++    if (($url_tokens = \Drupal::token()->findWithPrefix($tokens, 'url'))) {
++      $replacements += \Drupal::token()->generate('url', $url_tokens, $comment->urlInfo(), $options);
+     }
+   }
+ 
+   // Node tokens.
+   if ($type == 'node' && !empty($data['node'])) {
++    /* @var \Drupal\node\NodeInterface $node */
+     $node = $data['node'];
+ 
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'source':
+           if (!empty($node->tnid) && $source_node = node_load($node->tnid)) {
+-            $title = $source_node->title;
++            $title = $source_node->label();
+             $replacements[$original] = $sanitize ? filter_xss($title) : $title;
+           }
+           break;
+         case 'log':
+-          $replacements[$original] = $sanitize ? filter_xss($node->log) : $node->log;
++          $replacements[$original] = $sanitize ? filter_xss($node->log->value) : $node->log->value;
+           break;
+         case 'content-type':
+-          $type_name = node_type_get_name($node);
+-          $replacements[$original] = $sanitize ? check_plain($type_name) : $type_name;
++          $type_name = \Drupal::entityManager()->getStorageController('node_type')->load($node->getType())->label();
++          $replacements[$original] = $sanitize ? String::checkPlain($type_name) : $type_name;
+           break;
+       }
+     }
+ 
+     // Chained token relationships.
+-    if (!empty($node->tnid) && ($source_tokens = token_find_with_prefix($tokens, 'source')) && $source_node = node_load($node->tnid)) {
+-      $replacements += token_generate('node', $source_tokens, array('node' => $source_node), $options);
++    if (!empty($node->tnid) && ($source_tokens = \Drupal::token()->findWithPrefix($tokens, 'source')) && $source_node = node_load($node->tnid)) {
++      $replacements += \Drupal::token()->generate('node', $source_tokens, array('node' => $source_node), $options);
+     }
+-    if (($node_type_tokens = token_find_with_prefix($tokens, 'content-type')) && $node_type = node_type_load($node->type)) {
+-      $replacements += token_generate('content-type', $node_type_tokens, array('node_type' => $node_type), $options);
++    if (($node_type_tokens = \Drupal::token()->findWithPrefix($tokens, 'content-type')) && $node_type = node_type_load($node->bundle())) {
++      $replacements += \Drupal::token()->generate('content-type', $node_type_tokens, array('node_type' => $node_type), $options);
+     }
+-    if (($url_tokens = token_find_with_prefix($tokens, 'url'))) {
+-      $replacements += token_generate('url', $url_tokens, entity_uri('node', $node), $options);
++    if (($url_tokens = \Drupal::token()->findWithPrefix($tokens, 'url'))) {
++      $replacements += \Drupal::token()->generate('url', $url_tokens, $node->urlInfo(), $options);
+     }
+   }
+ 
+@@ -448,7 +460,7 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'name':
+-          $replacements[$original] = $sanitize ? check_plain($node_type->name) : $node_type->name;
++          $replacements[$original] = $sanitize ? String::checkPlain($node_type->name) : $node_type->name;
+           break;
+         case 'machine-name':
+           // This is a machine name so does not ever need to be sanitized.
+@@ -473,45 +485,46 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+ 
+   // Taxonomy term tokens.
+   if ($type == 'term' && !empty($data['term'])) {
++    /* @var \Drupal\taxonomy\TermInterface $term */
+     $term = $data['term'];
+ 
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'edit-url':
+-          $replacements[$original] = url("taxonomy/term/{$term->tid}/edit", $url_options);
++          $replacements[$original] = url("taxonomy/term/{$term->id()}/edit", $url_options);
+           break;
+ 
+         case 'parents':
+-          if ($parents = token_taxonomy_term_load_all_parents($term->tid)) {
++          if ($parents = token_taxonomy_term_load_all_parents($term->id())) {
+             $replacements[$original] = token_render_array($parents, $options);
+           }
+           break;
+ 
+         case 'root':
+-          $parents = taxonomy_get_parents_all($term->tid);
++          $parents = taxonomy_term_load_parents_all($term->id());
+           $root_term = end($parents);
+-          if ($root_term->tid != $term->tid) {
+-            $replacements[$original] = $sanitize ? check_plain($root_term->name) : $root_term->name;
++          if ($root_term->id() != $term->id()) {
++            $replacements[$original] = $sanitize ? String::checkPlain($root_term->label()) : $root_term->label();
+           }
+           break;
+       }
+     }
+ 
+     // Chained token relationships.
+-    if (($url_tokens = token_find_with_prefix($tokens, 'url'))) {
+-      $replacements += token_generate('url', $url_tokens, entity_uri('taxonomy_term', $term), $options);
++    if (($url_tokens = \Drupal::token()->findWithPrefix($tokens, 'url'))) {
++      $replacements += \Drupal::token()->generate('url', $url_tokens, $term->urlInfo(), $options);
+     }
+     // [term:parents:*] chained tokens.
+-    if ($parents_tokens = token_find_with_prefix($tokens, 'parents')) {
+-      if ($parents = token_taxonomy_term_load_all_parents($term->tid)) {
+-        $replacements += token_generate('array', $parents_tokens, array('array' => $parents), $options);
++    if ($parents_tokens = \Drupal::token()->findWithPrefix($tokens, 'parents')) {
++      if ($parents = token_taxonomy_term_load_all_parents($term->id())) {
++        $replacements += \Drupal::token()->generate('array', $parents_tokens, array('array' => $parents), $options);
+       }
+     }
+-    if ($root_tokens = token_find_with_prefix($tokens, 'root')) {
+-      $parents = taxonomy_get_parents_all($term->tid);
++    if ($root_tokens = \Drupal::token()->findWithPrefix($tokens, 'root')) {
++      $parents = taxonomy_term_load_parents_all($term->id());
+       $root_term = end($parents);
+-      if ($root_term->tid != $term->tid) {
+-        $replacements += token_generate('term', $root_tokens, array('term' => $root_term), $options);
++      if ($root_term->tid != $term->id()) {
++        $replacements += \Drupal::token()->generate('term', $root_tokens, array('term' => $root_term), $options);
+       }
+     }
+   }
+@@ -524,10 +537,10 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+       switch ($name) {
+         case 'machine-name':
+           // This is a machine name so does not ever need to be sanitized.
+-          $replacements[$original] = $vocabulary->machine_name;
++          $replacements[$original] = $vocabulary->id();
+           break;
+         case 'edit-url':
+-          $replacements[$original] = url("admin/structure/taxonomy/{$vocabulary->machine_name}/edit", $url_options);
++          $replacements[$original] = url("admin/structure/taxonomy/{$vocabulary->id()}/edit", $url_options);
+           break;
+       }
+     }
+@@ -540,15 +553,15 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'basename':
+-          $basename = pathinfo($file->uri, PATHINFO_BASENAME);
+-          $replacements[$original] = $sanitize ? check_plain($basename) : $basename;
++          $basename = pathinfo($file->uri->value, PATHINFO_BASENAME);
++          $replacements[$original] = $sanitize ? String::checkPlain($basename) : $basename;
+           break;
+         case 'extension':
+-          $extension = pathinfo($file->uri, PATHINFO_EXTENSION);
+-          $replacements[$original] = $sanitize ? check_plain($extension) : $extension;
++          $extension = pathinfo($file->uri->value, PATHINFO_EXTENSION);
++          $replacements[$original] = $sanitize ? String::checkPlain($extension) : $extension;
+           break;
+         case 'size-raw':
+-          $replacements[$original] = (int) $file->filesize;
++          $replacements[$original] = (int) $file->filesize->value;
+           break;
+       }
+     }
+@@ -556,38 +569,32 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+ 
+   // User tokens.
+   if ($type == 'user' && !empty($data['user'])) {
++    /* @var \Drupal\user\UserInterface $account */
+     $account = $data['user'];
+ 
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'picture':
+-          if (variable_get('user_pictures', 0)) {
+-            $replacements[$original] = theme('user_picture', array('account' => $account));
+-          }
++          $replacements[$original] = theme('user_picture', array('account' => $account));
+           break;
++
+         case 'roles':
+-          // The roles array may be set from checkbox values so ensure it always
+-          // has 'proper' data with the role names.
+-          $roles = array_intersect_key(user_roles(), $account->roles);
++          $roles = drupal_map_assoc($account->getRoles());
+           $replacements[$original] = token_render_array($roles, $options);
+           break;
+       }
+     }
+ 
+     // Chained token relationships.
+-    if (variable_get('user_pictures', 0) && !empty($account->picture) && ($picture_tokens = token_find_with_prefix($tokens, 'picture'))) {
+-      // @todo Remove when core bug http://drupal.org/node/978028 is fixed.
+-      $account->picture->description = '';
+-      $replacements += token_generate('file', $picture_tokens, array('file' => $account->picture), $options);
++    if (!empty($account->user_picture) && ($picture_tokens = \Drupal::token()->findWithPrefix($tokens, 'picture'))) {
++      $replacements += \Drupal::token()->generate('file', $picture_tokens, array('file' => $account->user_picture->entity), $options);
+     }
+-    if ($url_tokens = token_find_with_prefix($tokens, 'url')) {
+-      $replacements += token_generate('url', $url_tokens, entity_uri('user', $account), $options);
++    if ($url_tokens = \Drupal::token()->findWithPrefix($tokens, 'url')) {
++      $replacements += \Drupal::token()->generate('url', $url_tokens, $account->urlInfo(), $options);
+     }
+-    if ($role_tokens = token_find_with_prefix($tokens, 'roles')) {
+-      // The roles array may be set from checkbox values so ensure it always
+-      // has 'proper' data with the role names.
+-      $roles = array_intersect_key(user_roles(), $account->roles);
+-      $replacements += token_generate('array', $role_tokens, array('array' => $roles), $options);
++    if ($role_tokens = \Drupal::token()->findWithPrefix($tokens, 'roles')) {
++      $roles = drupal_map_assoc($account->getRoles());
++      $replacements += \Drupal::token()->generate('array', $role_tokens, array('array' => $roles), $options);
+     }
+   }
+ 
+@@ -596,8 +603,8 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'ip-address':
+-          $ip = ip_address();
+-          $replacements[$original] = $sanitize ? check_plain($ip) : $ip;
++          $ip = \Drupal::request()->getClientIp();
++          $replacements[$original] = $sanitize ? String::checkPlain($ip) : $ip;
+           break;
+       }
+     }
+@@ -605,58 +612,54 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+ 
+   // Menu link tokens.
+   if ($type == 'menu-link' && !empty($data['menu-link'])) {
+-    $link = (array) $data['menu-link'];
+-
+-    if (!isset($link['title'])) {
+-      // Re-load the link if it was not loaded via token_menu_link_load().
+-      $link = token_menu_link_load($link['mlid']);
+-    }
++    $link = $data['menu-link'];
+ 
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'mlid':
+-          $replacements[$original] = $link['mlid'];
++          $replacements[$original] = $link->id();
+           break;
+         case 'title':
+-          $replacements[$original] = $sanitize ? check_plain($link['title']) : $link['title'];
++          $replacements[$original] = $sanitize ? String::checkPlain($link->label()) : $link->label();
+           break;
+         case 'url':
+-          $replacements[$original] = url($link['href'], $url_options);
++          $replacements[$original] = \Drupal::url($link->route_name, $link->route_parameters, !empty($link->localized_options) ? $link->localized_options : array('absolute' => TRUE));
+           break;
+         case 'parent':
+-          if (!empty($link['plid']) && $parent = token_menu_link_load($link['plid'])) {
+-            $replacements[$original] = $sanitize ? check_plain($parent['title']) : $parent['title'];
++          if (!empty($link->plid) && $parent = menu_link_load($link->plid)) {
++            $replacements[$original] = $sanitize ? String::checkPlain($parent->label()) : $parent->label();
+           }
+           break;
+         case 'parents':
+-          if ($parents = token_menu_link_load_all_parents($link['mlid'])) {
++          if ($parents = token_menu_link_load_all_parents($link->id())) {
+             $replacements[$original] = token_render_array($parents, $options);
+           }
+           break;
+         case 'root';
+-          if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && $root = token_menu_link_load($link['p1'])) {
+-            $replacements[$original] = $sanitize ? check_plain($root['title']) : $root['title'];
++          if (!empty($link->p1) && $link->p1 != $link->id() && $root = menu_link_load($link->p1)) {
++            $replacements[$original] = $sanitize ? String::checkPlain($root->label()) : $root->label();
+           }
+           break;
+       }
+     }
+ 
+     // Chained token relationships.
+-    if (!empty($link['plid']) && ($source_tokens = token_find_with_prefix($tokens, 'parent')) && $parent = token_menu_link_load($link['plid'])) {
+-      $replacements += token_generate('menu-link', $source_tokens, array('menu-link' => $parent), $options);
++    if (!empty($link->plid) && ($source_tokens = \Drupal::token()->findWithPrefix($tokens, 'parent')) && $parent = menu_link_load($link->plid)) {
++      $replacements += \Drupal::token()->generate('menu-link', $source_tokens, array('menu-link' => $parent), $options);
+     }
+     // [menu-link:parents:*] chained tokens.
+-    if ($parents_tokens = token_find_with_prefix($tokens, 'parents')) {
+-      if ($parents = token_menu_link_load_all_parents($link['mlid'])) {
+-        $replacements += token_generate('array', $parents_tokens, array('array' => $parents), $options);
++    if ($parents_tokens = \Drupal::token()->findWithPrefix($tokens, 'parents')) {
++      if ($parents = token_menu_link_load_all_parents($link->id())) {
++        $replacements += \Drupal::token()->generate('array', $parents_tokens, array('array' => $parents), $options);
+       }
+     }
+-    if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && ($root_tokens = token_find_with_prefix($tokens, 'root')) && $root = token_menu_link_load($link['p1'])) {
+-      $replacements += token_generate('menu-link', $root_tokens, array('menu-link' => $root), $options);
++    if (!empty($link->p1) && $link->p1 != $link->id() && ($root_tokens = \Drupal::token()->findWithPrefix($tokens, 'root')) && $root = menu_link_load($link->p1)) {
++      $replacements += \Drupal::token()->generate('menu-link', $root_tokens, array('menu-link' => $root), $options);
+     }
+-    if ($url_tokens = token_find_with_prefix($tokens, 'url')) {
+-      $replacements += token_generate('url', $url_tokens, array('path' => $link['href']), $options);
++    if ($url_tokens = \Drupal::token()->findWithPrefix($tokens, 'url')) {
++      $replacements += \Drupal::token()->generate('url', $url_tokens, array('route_name' => $link->route_name, 'route_parameters' => $link->route_parameters), $options);
+     }
++
+   }
+ 
+   // Current page tokens.
+@@ -666,14 +669,16 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'title':
+-          $title = drupal_get_title();
++          $request = \Drupal::request();
++          $route = $request->attributes->get(RouteObjectInterface::ROUTE_OBJECT);
++          $title = \Drupal::service('title_resolver')->getTitle($request, $route);
+           $replacements[$original] = $sanitize ? $title : decode_entities($title);
+           break;
+         case 'url':
+           $replacements[$original] = url($current_path, $url_options);
+           break;
+         case 'page-number':
+-          if ($page = filter_input(INPUT_GET, 'page')) {
++          if ($page = \Drupal::request()->query->get('page')) {
+             // @see PagerDefault::execute()
+             $pager_page_array = explode(',', $page);
+             $page = $pager_page_array[0];
+@@ -685,119 +690,137 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+ 
+     // @deprecated
+     // [current-page:arg] dynamic tokens.
+-    if ($arg_tokens = token_find_with_prefix($tokens, 'arg')) {
++    if ($arg_tokens = \Drupal::token()->findWithPrefix($tokens, 'arg')) {
++      $path = \Drupal::request()->attributes->get('_system_path');
++      // Make sure its a system path.
++      $path = \Drupal::service('path.alias_manager')->getSystemPath($path);
+       foreach ($arg_tokens as $name => $original) {
+-        if (is_numeric($name) && ($arg = arg($name)) && isset($arg)) {
+-          $replacements[$original] = $sanitize ? check_plain($arg) : $arg;
++        if (is_numeric($name) && ($arg = arg($name, $path)) && isset($arg)) {
++          $replacements[$original] = $sanitize ? String::checkPlain($arg) : $arg;
+         }
+       }
+     }
+ 
+     // [current-page:query] dynamic tokens.
+-    if ($query_tokens = token_find_with_prefix($tokens, 'query')) {
++    if ($query_tokens = \Drupal::token()->findWithPrefix($tokens, 'query')) {
+       foreach ($query_tokens as $name => $original) {
+         // @todo Should this use filter_input()?
+-        if (isset($_GET[$name])) {
+-          $replacements[$original] = $sanitize ? check_plain($_GET[$name]) : $_GET[$name];
++        if (\Drupal::request()->query->has($name)) {
++          $value = \Drupal::request()->query->get($name);
++          $replacements[$original] = $sanitize ? String::checkPlain($value) : $value;
++        }
++        elseif ($name == 'q') {
++          $replacements[$original] = \Drupal::request()->attributes->get('_system_path');
+         }
+       }
+     }
+ 
+     // Chained token relationships.
+-    if ($url_tokens = token_find_with_prefix($tokens, 'url')) {
+-      $replacements += token_generate('url', $url_tokens, array('path' => $current_path), $options);
++    if ($url_tokens = \Drupal::token()->findWithPrefix($tokens, 'url')) {
++      $request = \Drupal::request();
++      $url_data['route_name'] = $request->attributes->get(RouteObjectInterface::ROUTE_OBJECT);
++      $url_data['route_parameters'] = $request->attributes->get('_raw_variables')->all();
++      $replacements += \Drupal::token()->generate('url', $url_tokens, $url_data, $options);
+     }
+   }
+ 
+   // URL tokens.
+-  if ($type == 'url' && !empty($data['path'])) {
+-    $path = $data['path'];
+-
++  if ($type == 'url' && !empty($data['route_name'])) {
++    $route = $data['route_name'];
++    $route_param = array();
++    if (isset($data['route_parameters'])) {
++      $route_param = $data['route_parameters'];
++    }
++    $url_options = array();
+     if (isset($data['options'])) {
+       // Merge in the URL options if available.
+       $url_options = $data['options'] + $url_options;
+     }
++    $path_url_options = $url_options;
++    unset($path_url_options['fragment']);
++    $path = \Drupal::url($route, $route_param, $path_url_options);
++    $path = ltrim($path, '/');
+ 
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'path':
+-          $value = empty($url_options['alias']) ? drupal_get_path_alias($path, $language_code) : $path;
+-          $replacements[$original] = $sanitize ? check_plain($value) : $value;
++          $value = empty($url_options['alias']) ? \Drupal::service('path.alias_manager')->getPathAlias($path, $language_code) : $path;
++          $replacements[$original] = $sanitize ? String::checkPlain($value) : $value;
+           break;
+         case 'alias':
+           // @deprecated
+-          $alias = drupal_get_path_alias($path, $language_code);
+-          $replacements[$original] = $sanitize ? check_plain($alias) : $alias;
++          $alias = \Drupal::service('path.alias_manager')->getPathAlias($path, $language_code);
++          $replacements[$original] = $sanitize ? String::checkPlain($alias) : $alias;
+           break;
+         case 'absolute':
+-          $replacements[$original] = url($path, $url_options);
++          $replacements[$original] = \Drupal::url($route, $route_param, array('absolute' => TRUE) + $url_options);
+           break;
+         case 'relative':
+-          $replacements[$original] = url($path, array('absolute' => FALSE) + $url_options);
++          $replacements[$original] = \Drupal::url($route, $route_param, array('absolute' => FALSE) + $url_options);
+           break;
+         case 'brief':
+-          $replacements[$original] = preg_replace(array('!^https?://!', '!/$!'), '', url($path, $url_options));
++          $url_options['absolute'] = TRUE;
++          $replacements[$original] = preg_replace(array('!^https?://!', '!/$!'), '', \Drupal::url($route, $route_param, $url_options));
+           break;
+         case 'unaliased':
+-          $replacements[$original] = url($path, array('alias' => TRUE) + $url_options);
++          $url_options['absolute'] = TRUE;
++          $replacements[$original] = \Drupal::url($route, $route_param, array('alias' => TRUE) + $url_options);
+           break;
+         case 'args':
+-          $value = empty($url_options['alias']) ? drupal_get_path_alias($path, $language_code) : $path;
++          $value = empty($url_options['alias']) ? \Drupal::service('path.alias_manager')->getPathAlias($path, $language_code) : $path;
+           $replacements[$original] = token_render_array(arg(NULL, $value), $options);
+           break;
+       }
+     }
+ 
+     // [url:arg:*] chained tokens.
+-    if ($arg_tokens = token_find_with_prefix($tokens, 'args')) {
+-      $value = empty($url_options['alias']) ? drupal_get_path_alias($path, $language_code) : $path;
+-      $replacements += token_generate('array', $arg_tokens, array('array' => arg(NULL, $value)), $options);
++    if ($arg_tokens = \Drupal::token()->findWithPrefix($tokens, 'args')) {
++      $value = empty($url_options['alias']) ? \Drupal::service('path.alias_manager')->getPathAlias($path, $language_code) : $path;
++      $value = ltrim($value, '/');
++      $replacements += \Drupal::token()->generate('array', $arg_tokens, array('array' => arg(NULL, $value)), $options);
+     }
+ 
+     // [url:unaliased:*] chained tokens.
+-    if ($unaliased_tokens = token_find_with_prefix($tokens, 'unaliased')) {
++    if ($unaliased_tokens = \Drupal::token()->findWithPrefix($tokens, 'unaliased')) {
++      $unaliased_token_data['route_name'] = $route;
++      $unaliased_token_data['route_parameters'] = $route_param;
+       $unaliased_token_data['path'] = $path;
+       $unaliased_token_data['options'] = isset($data['options']) ? $data['options'] : array();
+       $unaliased_token_data['options']['alias'] = TRUE;
+-      $replacements += token_generate('url', $unaliased_tokens, $unaliased_token_data, $options);
++      $replacements += \Drupal::token()->generate('url', $unaliased_tokens, $unaliased_token_data, $options);
+     }
+   }
+ 
+   // Entity tokens.
+-  if (!empty($data[$type]) && $entity_type = token_get_entity_mapping('token', $type)) {
++  if (!empty($data[$type]) && ($entity_type = token_get_entity_mapping('token', $type))) {
++    /* @var \Drupal\Core\Entity\EntityInterface $entity */
+     $entity = $data[$type];
+ 
+-    // Sometimes taxonomy terms are not properly loaded.
+-    // @see http://drupal.org/node/870528
+-    if ($entity_type == 'taxonomy_term' && !isset($entity->vocabulary_machine_name)) {
+-      $entity->vocabulary_machine_name = db_query("SELECT machine_name FROM {taxonomy_vocabulary} WHERE vid = :vid", array(':vid' => $entity->vid))->fetchField();
+-    }
+-
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'url':
+-          if (_token_module($type, 'url') == 'token' && $uri = entity_uri($entity_type, $entity)) {
++          if (_token_module($type, 'url') == 'token' && $uri = $entity->urlInfo()) {
+             $replacements[$original] = url($uri['path'], $uri['options']);
+           }
+           break;
+ 
+         case 'original':
+           if (_token_module($type, 'original') == 'token' && !empty($entity->original)) {
+-            $label = entity_label($entity_type, $entity->original);
+-            $replacements[$original] = $sanitize ? check_plain($label) : $label;
++            $label = $entity->original->label();
++            $replacements[$original] = $sanitize ? String::checkPlain($label) : $label;
+           }
+           break;
+       }
+     }
+ 
+     // [entity:url:*] chained tokens.
+-    if (($url_tokens = token_find_with_prefix($tokens, 'url')) && _token_module($type, 'url') == 'token') {
+-      $replacements += token_generate('url', $url_tokens, entity_uri($entity_type, $entity), $options);
++    if (($url_tokens = \Drupal::token()->findWithPrefix($tokens, 'url')) && _token_module($type, 'url') == 'token') {
++      $replacements += \Drupal::token()->generate('url', $url_tokens, $entity->urlInfo(), $options);
+     }
+ 
+     // [entity:original:*] chained tokens.
+-    if (($original_tokens = token_find_with_prefix($tokens, 'original')) && _token_module($type, 'original') == 'token' && !empty($entity->original)) {
+-      $replacements += token_generate($type, $original_tokens, array($type => $entity->original), $options);
++    if (($original_tokens = \Drupal::token()->findWithPrefix($tokens, 'original')) && _token_module($type, 'original') == 'token' && !empty($entity->original)) {
++      $replacements += \Drupal::token()->generate($type, $original_tokens, array($type => $entity->original), $options);
+     }
+ 
+     // Pass through to an generic 'entity' token type generation.
+@@ -807,7 +830,7 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+       'token_type' => $type,
+     );
+     // @todo Investigate passing through more data like everything from entity_extract_ids().
+-    $replacements += token_generate('entity', $tokens, $entity_data, $options);
++    $replacements += \Drupal::token()->generate('entity', $tokens, $entity_data, $options);
+   }
+ 
+   // Array tokens.
+@@ -815,19 +838,19 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+     $array = $data['array'];
+ 
+     $sort = isset($options['array sort']) ? $options['array sort'] : TRUE;
+-    $keys = element_children($array, $sort);
++    $keys = token_element_children($array, $sort);
+ 
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'first':
+           $value = $array[$keys[0]];
+           $value = is_array($value) ? render($value) : (string) $value;
+-          $replacements[$original] = $sanitize ? check_plain($value) : $value;
++          $replacements[$original] = $sanitize ? String::checkPlain($value) : $value;
+           break;
+         case 'last':
+           $value = $array[$keys[count($keys) - 1]];
+           $value = is_array($value) ? render($value) : (string) $value;
+-          $replacements[$original] = $sanitize ? check_plain($value) : $value;
++          $replacements[$original] = $sanitize ? String::checkPlain($value) : $value;
+           break;
+         case 'count':
+           $replacements[$original] = count($keys);
+@@ -846,7 +869,7 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+     }
+ 
+     // [array:value:*] dynamic tokens.
+-    if ($value_tokens = token_find_with_prefix($tokens, 'value')) {
++    if ($value_tokens = \Drupal::token()->findWithPrefix($tokens, 'value')) {
+       foreach ($value_tokens as $key => $original) {
+         if ($key[0] !== '#' && isset($array[$key])) {
+           $replacements[$original] = token_render_array_value($array[$key], $options);
+@@ -855,20 +878,20 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+     }
+ 
+     // [array:join:*] dynamic tokens.
+-    if ($join_tokens = token_find_with_prefix($tokens, 'join')) {
++    if ($join_tokens = \Drupal::token()->findWithPrefix($tokens, 'join')) {
+       foreach ($join_tokens as $join => $original) {
+         $replacements[$original] = token_render_array($array, array('join' => $join) + $options);
+       }
+     }
+ 
+     // [array:keys:*] chained tokens.
+-    if ($key_tokens = token_find_with_prefix($tokens, 'keys')) {
+-      $replacements += token_generate('array', $key_tokens, array('array' => $keys), $options);
++    if ($key_tokens = \Drupal::token()->findWithPrefix($tokens, 'keys')) {
++      $replacements += \Drupal::token()->generate('array', $key_tokens, array('array' => $keys), $options);
+     }
+ 
+     // [array:reversed:*] chained tokens.
+-    if ($reversed_tokens = token_find_with_prefix($tokens, 'reversed')) {
+-      $replacements += token_generate('array', $reversed_tokens, array('array' => array_reverse($array, TRUE)), array('array sort' => FALSE) + $options);
++    if ($reversed_tokens = \Drupal::token()->findWithPrefix($tokens, 'reversed')) {
++      $replacements += \Drupal::token()->generate('array', $reversed_tokens, array('array' => array_reverse($array, TRUE)), array('array sort' => FALSE) + $options);
+     }
+ 
+     // @todo Handle if the array values are not strings and could be chained.
+@@ -885,11 +908,11 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
+     }
+ 
+     // [custom:hash:*] dynamic token.
+-    if ($hash_tokens = token_find_with_prefix($tokens, 'hash')) {
++    if ($hash_tokens = \Drupal::token()->findWithPrefix($tokens, 'hash')) {
+       $algos = hash_algos();
+       foreach ($hash_tokens as $name => $original) {
+         if (in_array($name, $algos)) {
+-          $replacements[$original] = hash($name, drupal_random_bytes(55));
++          $replacements[$original] = hash($name, Crypt::randomStringHashed(55));
+         }
+       }
+     }
+@@ -943,8 +966,8 @@ function token_tokens_alter(array &$replacements, array $context) {
+             $account = drupal_anonymous_user();
+             $account->name = $comment->name;
+           }
+-          $name = format_username($account);
+-          $replacements[$original] = $sanitize ? check_plain($name) : $name;
++          $name = $account->getUsername();
++          $replacements[$original] = $sanitize ? String::checkPlain($name) : $name;
+           break;
+       }
+     }
+@@ -957,12 +980,9 @@ function token_tokens_alter(array &$replacements, array $context) {
+     foreach ($context['tokens'] as $name => $original) {
+       switch ($name) {
+         case 'author':
+-          // http://drupal.org/node/1185842 was fixed in core release 7.9.
+-          if (version_compare(VERSION, '7.9', '<')) {
+-            $account = user_load($node->uid);
+-            $name = format_username($account);
+-            $replacements[$original] = $sanitize ? check_plain($name) : $name;
+-          }
++          $account = user_load($node->uid);
++          $name = $account->getUsername();
++          $replacements[$original] = $sanitize ? String::checkPlain($name) : $name;
+           break;
+       }
+     }
+@@ -975,12 +995,9 @@ function token_tokens_alter(array &$replacements, array $context) {
+     foreach ($context['tokens'] as $name => $original) {
+       switch ($name) {
+         case 'owner':
+-          // http://drupal.org/node/978028 was fixed in core release 7.7.
+-          if (version_compare(VERSION, '7.7', '<')) {
+-            $account = user_load($file->uid);
+-            $name = format_username($account);
+-            $replacements[$original] = $sanitize ? check_plain($name) : $name;
+-          }
++          $account = user_load($file->uid);
++          $name = $account->getUsername();
++          $replacements[$original] = $sanitize ? String::checkPlain($name) : $name;
+           break;
+       }
+     }
+@@ -1016,14 +1033,14 @@ function book_tokens($type, $tokens, array $data = array(), array $options = arr
+       foreach ($tokens as $name => $original) {
+         switch ($name) {
+           case 'book':
+-            $replacements[$original] = $sanitize ? check_plain($link['title']) : $link['title'];
++            $replacements[$original] = $sanitize ? String::checkPlain($link['title']) : $link['title'];
+             break;
+         }
+       }
+ 
+       // Chained token relationships.
+-      if ($book_tokens = token_find_with_prefix($tokens, 'book')) {
+-        $replacements += token_generate('menu-link', $book_tokens, array('menu-link' => $link), $options);
++      if ($book_tokens = \Drupal::token()->findWithPrefix($tokens, 'book')) {
++        $replacements += \Drupal::token()->generate('menu-link', $book_tokens, array('menu-link' => $link), $options);
+       }
+     }
+   }
+@@ -1105,15 +1122,15 @@ function menu_tokens($type, $tokens, array $data = array(), array $options = arr
+       switch ($name) {
+         case 'menu-link':
+           if ($link = token_node_menu_link_load($node)) {
+-            $replacements[$original] = $sanitize ? check_plain($link['title']) : $link['title'];
++            $replacements[$original] = $sanitize ? String::checkPlain($link->label()) : $link->label();
+           }
+           break;
+       }
+ 
+       // Chained token relationships.
+-      if ($menu_tokens = token_find_with_prefix($tokens, 'menu-link')) {
++      if ($menu_tokens = \Drupal::token()->findWithPrefix($tokens, 'menu-link')) {
+         if ($link = token_node_menu_link_load($node)) {
+-          $replacements += token_generate('menu-link', $menu_tokens, array('menu-link' => $link), $options);
++          $replacements += \Drupal::token()->generate('menu-link', $menu_tokens, array('menu-link' => $link), $options);
+         }
+       }
+     }
+@@ -1121,52 +1138,52 @@ function menu_tokens($type, $tokens, array $data = array(), array $options = arr
+ 
+   // Menu link tokens.
+   if ($type == 'menu-link' && !empty($data['menu-link'])) {
+-    $link = (array) $data['menu-link'];
++    $link = $data['menu-link'];
+ 
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'menu':
+-          if ($menu = menu_load($link['menu_name'])) {
+-            $replacements[$original] = $sanitize ? check_plain($menu['title']) : $menu['title'];
++          if ($menu = menu_load($link->bundle())) {
++            $replacements[$original] = $sanitize ? String::checkPlain($menu->label()) : $menu->label();
+           }
+           break;
+         case 'edit-url':
+-          $replacements[$original] = url("admin/structure/menu/item/{$link['mlid']}/edit", $url_options);
++          $replacements[$original] = url("admin/structure/menu/item/{$link->id()}/edit", $url_options);
+           break;
+       }
+     }
+ 
+     // Chained token relationships.
+-    if (($menu_tokens = token_find_with_prefix($tokens, 'menu')) && $menu = menu_load($link['menu_name'])) {
+-      $replacements += token_generate('menu', $menu_tokens, array('menu' => $menu), $options);
++    if (($menu_tokens = \Drupal::token()->findWithPrefix($tokens, 'menu')) && $menu = menu_load($link->bundle())) {
++      $replacements += \Drupal::token()->generate('menu', $menu_tokens, array('menu' => $menu), $options);
+     }
+   }
+ 
+   // Menu tokens.
+   if ($type == 'menu' && !empty($data['menu'])) {
+-    $menu = (array) $data['menu'];
++    $menu = $data['menu'];
+ 
+     foreach ($tokens as $name => $original) {
+       switch ($name) {
+         case 'name':
+-          $replacements[$original] = $sanitize ? check_plain($menu['title']) : $menu['title'];
++          $replacements[$original] = $sanitize ? String::checkPlain($menu->label()) : $menu->label();
+           break;
+         case 'machine-name':
+           // This is a machine name so does not ever need to be sanitized.
+-          $replacements[$original] = $menu['menu_name'];
++          $replacements[$original] = $menu->id();
+           break;
+         case 'description':
+-          $replacements[$original] = $sanitize ? filter_xss($menu['description']) : $menu['description'];
++          $replacements[$original] = $sanitize ? filter_xss($menu->description) : $menu->description;
+           break;
+         case 'menu-link-count':
+           $query = db_select('menu_links');
+-          $query->condition('menu_name', $menu['menu_name']);
++          $query->condition('menu_name', $menu->id());
+           $query->addTag('menu_menu_link_count');
+           $count = $query->countQuery()->execute()->fetchField();
+           $replacements[$original] = (int) $count;
+           break;
+         case 'edit-url':
+-          $replacements[$original] = url("admin/structure/menu/manage/" . $menu['menu_name'], $url_options);
++          $replacements[$original] = url("admin/structure/menu/manage/" . $menu->id(), $url_options);
+           break;
+       }
+     }
+@@ -1176,159 +1193,55 @@ function menu_tokens($type, $tokens, array $data = array(), array $options = arr
+ }
+ 
+ /**
+- * Implements hook_token_info() on behalf of profile.module.
+- */
+-function profile_token_info() {
+-  $info = array();
+-
+-  foreach (_token_profile_fields() as $field) {
+-    $info['tokens']['user'][$field->token_name] = array(
+-      'name' => check_plain($field->title),
+-      'description' => t('@category @type field.', array('@category' => drupal_ucfirst($field->category), '@type' => $field->type)),
+-    );
+-
+-    switch ($field->type) {
+-      case 'date':
+-        $info['tokens']['user'][$field->token_name]['type'] = 'date';
+-        break;
+-    }
+-  }
+-
+-  return $info;
+-}
+-
+-/**
+- * Implements hook_tokens() on behalf of profile.module.
+- */
+-function profile_tokens($type, $tokens, array $data = array(), array $options = array()) {
+-  $replacements = array();
+-  $sanitize = !empty($options['sanitize']);
+-  $language_code = isset($options['language']) ? $options['language']->language : NULL;
+-
+-  if ($type == 'user' && !empty($data['user'])) {
+-    $account = $data['user'];
+-
+-    // Load profile fields if this is the global user account.
+-    // @see http://drupal.org/node/361471
+-    // @see http://drupal.org/node/967330
+-    if ($account->uid == $GLOBALS['user']->uid && isset($account->timestamp)) {
+-      $profile_users = array($account->uid => $account);
+-      profile_user_load($profile_users);
+-      $account = $profile_users[$account->uid];
+-    }
+-
+-    $profile_fields = _token_profile_fields();
+-    foreach ($tokens as $name => $original) {
+-      if (isset($profile_fields[$name]) && !empty($account->{$profile_fields[$name]->name})) {
+-        $value = $account->{$profile_fields[$name]->name};
+-        switch ($profile_fields[$name]->type) {
+-          case 'textarea':
+-            $replacements[$original] = $sanitize ? check_markup($value, filter_default_format($account), '', TRUE) : $value;
+-            break;
+-          case 'date':
+-            $timestamp = gmmktime(0, 0, 0, $value['month'], $value['day'], $value['year']);
+-            $replacements[$original] = format_date($timestamp, 'medium', '', NULL, $language_code);
+-            break;
+-          case 'url':
+-            $replacements[$original] = $sanitize ? check_url($value) : $value;
+-            break;
+-          case 'checkbox':
+-            // Checkbox field if checked should return the text.
+-            $replacements[$original] = $sanitize ? check_plain($profile_fields[$name]->title) : $profile_fields[$name]->title;
+-            break;
+-          case 'list':
+-            $value = preg_split("/[,\n\r]/", $value);
+-            $value = array_map('trim', $value);
+-            $value = implode(', ', $value);
+-            // Intentionally fall through to the default condition.
+-          default:
+-            $replacements[$original] = $sanitize ? check_plain($value) : $value;
+-            break;
+-        }
+-      }
+-    }
+-
+-    // Chained token relationships.
+-    foreach ($profile_fields as $field) {
+-      if ($field->type == 'date' && isset($account->{$field->name}) && $field_tokens = token_find_with_prefix($tokens, $field->token_name)) {
+-        $date = $account->{$field->name};
+-        $replacements += token_generate('date', $field_tokens, array('date' => gmmktime(0, 0, 0, $date['month'], $date['day'], $date['year'])), $options);
+-      }
+-    }
+-  }
+-
+-  return $replacements;
+-}
+-
+-/**
+- * Fetch an array of profile field objects, keyed by token name.
+- */
+-function _token_profile_fields() {
+-  $fields = &drupal_static(__FUNCTION__);
+-
+-  if (!isset($fields)) {
+-    $fields = array();
+-    $results = db_query("SELECT name, title, category, type FROM {profile_field}");
+-    foreach ($results as $field) {
+-      $field->token_name = token_clean_token_name($field->name);
+-      $fields[$field->token_name] = $field;
+-    }
+-  }
+-
+-  return $fields;
+-}
+-
+-/**
+  * Fetch an array of field data used for tokens.
+  */
+ function _token_field_info($field_name = NULL) {
+   $info = &drupal_static(__FUNCTION__);
+ 
+   if (!isset($fields)) {
+-    if ($cached = cache_get('field:info', 'cache_token')) {
++    if ($cached = cache('cache_token')->get('field:info')) {
+       $info = $cached->data;
+     }
+     else {
+       $info = array();
+ 
+       $fields = field_info_fields();
+-      $instances = field_info_instances();
+-      $type_info = field_info_field_types();
+-      $entity_info = entity_get_info();
++      $instances = Field::fieldInfo()->getInstances();
++      $type_info = \Drupal::service('plugin.manager.field.field_type')->getDefinitions();
++      $entity_info = \Drupal::entityManager()->getDefinitions();
+ 
+       foreach ($fields as $field) {
+-        $key = $field['field_name'];
+-        if (!empty($field['bundles'])) {
+-          foreach (array_keys($field['bundles']) as $entity) {
+-            // Make sure a token type exists for this entity.
+-            $token_type = token_get_entity_mapping('entity', $entity);
+-            if (empty($token_type)) {
++        /* @var \Drupal\field\FieldInterface $field */
++        $key = $field->getName();
++        foreach (array_keys($field->getBundles()) as $entity) {
++          // Make sure a token type exists for this entity.
++          $token_type = token_get_entity_mapping('entity', $entity);
++          if (empty($token_type)) {
++            continue;
++          }
++
++          $info[$key]['token types'][] = $token_type;
++          $info[$key] += array('labels' => array(), 'bundles' => array());
++
++          // Find which label is most commonly used.
++          foreach ($field['bundles'][$entity] as $bundle) {
++            // Field information will included fields attached to disabled
++            // bundles, so check that the bundle exists before provided a
++            // token for it.
++            // @see http://drupal.org/node/1252566
++            if (!isset($entity_info[$entity]['bundles'][$bundle])) {
+               continue;
+             }
+ 
+-            $info[$key]['token types'][] = $token_type;
+-            $info[$key] += array('labels' => array(), 'bundles' => array());
+-
+-            // Find which label is most commonly used.
+-            foreach ($field['bundles'][$entity] as $bundle) {
+-              // Field information will included fields attached to disabled
+-              // bundles, so check that the bundle exists before provided a
+-              // token for it.
+-              // @see http://drupal.org/node/1252566
+-              if (!isset($entity_info[$entity]['bundles'][$bundle])) {
+-                continue;
+-              }
+-
+-              $info[$key]['labels'][] = $instances[$entity][$bundle][$key]['label'];
+-              $info[$key]['bundles'][$token_type][$bundle] = $entity_info[$entity]['bundles'][$bundle]['label'];
+-            }
++            $info[$key]['labels'][] = $instances[$entity][$bundle][$key]['label'];
++            $info[$key]['bundles'][$token_type][$bundle] = $entity_info[$entity]['bundles'][$bundle]['label'];
+           }
+         }
+ 
+         if (isset($info[$key])) {
+           $labels = array_count_values($info[$key]['labels']);
+           arsort($labels);
+-          $info[$key]['label'] = check_plain(key($labels));
++          $info[$key]['label'] = String::checkPlain(key($labels));
+ 
+           // Generate a description for the token.
+           $info[$key]['description'] = t('@type field.', array('@type' => $type_info[$field['type']]['label']));
+@@ -1338,8 +1251,8 @@ function _token_field_info($field_name = NULL) {
+         }
+       }
+ 
+-      drupal_alter('token_field_info', $info);
+-      cache_set('field:info', $info, 'cache_token');
++      \Drupal::moduleHandler()->alter('token_field_info', $info);
++      cache('cache_token')->set('field:info', $info);
+     }
+   }
+ 
+@@ -1400,14 +1313,18 @@ function field_tokens($type, $tokens, array $data = array(), array $options = ar
+     $entity_type = $data['entity_type'];
+ 
+     // The field API does weird stuff to the entity, so let's clone it.
++    /* @var \Drupal\Core\Entity\EntityInterface $entity */
+     $entity = clone $data['entity'];
++    if (!($entity instanceof EntityInterface)) {
++      return $replacements;
++    }
+ 
+     // Reset the prepared view flag in case token generation is called from
+     // inside field_attach_view().
+     unset($entity->_field_view_prepared);
+ 
+-    list(, , $bundle) = entity_extract_ids($entity_type, $entity);
+-    $fields = field_info_instances($entity_type, $bundle);
++    $bundle = $entity->bundle();
++    $fields = Field::fieldInfo()->getBundleInstances($entity_type, $bundle);
+ 
+     foreach (array_keys($fields) as $field_name) {
+       // Do not continue if the field is empty.
+@@ -1415,11 +1332,16 @@ function field_tokens($type, $tokens, array $data = array(), array $options = ar
+         continue;
+       }
+ 
+-      // Replace the [entity:field-name] token only if token module added this
+-      // token.
+-      if (isset($tokens[$field_name]) && _token_module($data['token_type'], $field_name) == 'token') {
++      // Replace the [entity:field-name] token.
++      if (isset($tokens[$field_name])) {
+         $original = $tokens[$field_name];
+ 
++        // Assert that this field was added by token.module.
++        $token_info = token_get_info($data['token_type'], $field_name);
++        if (!isset($token_info['module']) || $token_info['module'] != 'token') {
++          continue;
++        }
++
+         $field_output = field_view_field($entity_type, $entity, $field_name, 'token', $langcode);
+         $field_output['#token_options'] = $options;
+         $field_output['#pre_render'][] = 'token_pre_render_field_token';
+@@ -1445,7 +1367,7 @@ function token_pre_render_field_token(&$elements) {
+ 
+   // Prevent multi-value fields from appearing smooshed together by appending
+   // a join suffix to all but the last value.
+-  $deltas = element_get_visible_children($elements);
++  $deltas = Element::getVisibleChildren($elements);
+   $count = count($deltas);
+   if ($count > 1) {
+     $join = isset($elements['#token_options']['join']) ? $elements['#token_options']['join'] : ", ";
