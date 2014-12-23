@@ -1,4 +1,4 @@
 type: module
-name: Token D8
+name: Token D
 description: Provides a user interface for the Token API and some missing core tokens.
 core: 8.x
