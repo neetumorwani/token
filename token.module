@@ -14,10 +14,8 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Utility\Token;
-<<<<<<< HEAD
 use Drupal\Core\Url;
-=======
->>>>>>> 8847013f593126f1a247508c64e47c2ac2c37330
+
 
 /**
  * The maximum depth for token tree recursion.
@@ -32,15 +30,11 @@ require_once __DIR__ . '/token.tokens.inc';
  * Implements hook_help().
  */
 function token_help($route_name, RouteMatchInterface $route_match) {
-<<<<<<< HEAD
+
   $url = Url::fromRoute('<current>');
 
   if ($route_name == 'help.page.token') {
     if ($url->toString() != 'admin/help/token') {
-=======
-  if ($route_name == 'help.page.token') {
-    if (current_path() != 'admin/help/token') {
->>>>>>> 8847013f593126f1a247508c64e47c2ac2c37330
       // Because system_modules() executes hook_help() for each module to 'test'
       // if they will return anything, but not actually display it, we want to
       // return a TRUE value if this is not actually the help page.
